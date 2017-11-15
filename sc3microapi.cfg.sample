@@ -1,0 +1,9 @@
+[Service]
+# Verbosity of the logging system
+# Possible values are:
+# CRITICAL, ERROR, WARNING, INFO, DEBUG
+verbosity = INFO
+dbhost = name.domainname
+dbport = 1234
+dbuser = username
+dbpass = password
