@@ -13,11 +13,11 @@ Welcome to sc3microapi's documentation!
 Installation
 ============
 
-The code is hosted in the following repository: https://git.gfz-potsdam.de/javiquinte/sc3microapi.git
+The code is hosted in the following repository: https://github.com/javiquinte/sc3microapi.git
 
 To get the code and deploy it you can execute the following commands: ::
 
-  git clone https://git.gfz-potsdam.de/javiquinte/sc3microapi.git
+  git clone https://github.com/javiquinte/sc3microapi.git
   cd sc3microapi
   cp sc3microapi.cfg.sample sc3microapi.cfg
 
