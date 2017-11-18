@@ -81,7 +81,7 @@ class SC3MicroApi(object):
 
     @cherrypy.expose
     def index(self):
-        cherrypy.response.header['Content-Type'] = 'text/html'
+        cherrypy.response.headers['Content-Type'] = 'text/html'
 
         # TODO Create an HTML page with a minimum documentation for a user
         try:
@@ -105,7 +105,7 @@ class SC3MicroApi(object):
         :rtype: string
         """
         version = '0.1a1'
-        cherrypy.response.header['Content-Type'] = 'text/plain'
+        cherrypy.response.headers['Content-Type'] = 'text/plain'
         return version
 
 
@@ -126,11 +126,13 @@ server_config = {
     'global': {
         'tools.proxy.on': True,
     	'server.socket_host': '127.0.0.1',
-    	'server.socket_port': 8000,
+    	'server.socket_port': 7000,
     	'engine.autoreload_on': False
     }
 }
-cherrypy.tree.mount(SC3MicroApi(), '/sc3microapi', server_config)
+# Update the global CherryPy configuration
+cherrypy.config.update(server_config)
+cherrypy.tree.mount(SC3MicroApi(), '/sc3microapi')
 
 if __name__ == "__main__":
     cherrypy.engine.signals.subscribe()
