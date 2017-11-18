@@ -126,7 +126,7 @@ server_config = {
     'global': {
         'tools.proxy.on': True,
     	'server.socket_host': '127.0.0.1',
-    	'server.socket_port': 8080,
+    	'server.socket_port': 8000,
     	'engine.autoreload_on': False
     }
 }
