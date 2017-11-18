@@ -40,9 +40,9 @@ except ImportError:
 class NetworksAPI(object):
     """Object dispatching methods related to networks."""
 
-    def __init__(self):
+    def __init__(self, conn):
         """Constructor of the IngestAPI class."""
-        pass
+        self.conn = conn
 
     def index(self):
         """List available networks in the system.
@@ -52,7 +52,9 @@ class NetworksAPI(object):
         :raises: cherrypy.HTTPError
         """
         try:
-            templates = []
+            self.cursor = self.conn.cursor()
+            self.cursor.execute('select code, start, end, netClass, archive, restricted from network')
+            return json.dumps(self.cursor.fetchall())
         except:
             # Send Error 404
             messDict = {'code': 0,
@@ -70,14 +72,15 @@ class NetworksAPI(object):
 class SC3MicroApi(object):
     """Main class including the dispatcher."""
 
-    def __init__(self):
+    def __init__(self, conn):
         """Constructor of the Provgen object."""
         config = configparser.RawConfigParser()
         here = os.path.dirname(__file__)
         config.read(os.path.join(here, 'sc3microapi.cfg'))
 
-        # Read connection parameters
-        self.network = NetworksAPI()
+        # Save connection
+        self.conn = conn
+        self.network = NetworksAPI(conn)
 
     @cherrypy.expose
     def index(self):
@@ -132,7 +135,7 @@ server_config = {
 }
 # Update the global CherryPy configuration
 cherrypy.config.update(server_config)
-cherrypy.tree.mount(SC3MicroApi(), '/sc3microapi')
+cherrypy.tree.mount(SC3MicroApi(conn), '/sc3microapi')
 
 if __name__ == "__main__":
     cherrypy.engine.signals.subscribe()
