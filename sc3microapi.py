@@ -44,29 +44,30 @@ class NetworksAPI(object):
         """Constructor of the IngestAPI class."""
         self.conn = conn
 
+    @cherrypy.expose
     def index(self):
         """List available networks in the system.
 
         :returns: Data related to the available networks.
-        :rtype: string
+        :rtype: utf-8 encoded string
         :raises: cherrypy.HTTPError
         """
+        cherrypy.response.headers['Content-Type'] = 'application/json'
         try:
             self.cursor = self.conn.cursor()
             self.cursor.execute('select code, start, end, netClass, archive, restricted from network')
-            return json.dumps(self.cursor.fetchall())
+            return json.dumps(self.cursor.fetchall()).encode('utf-8')
         except:
             # Send Error 404
             messDict = {'code': 0,
                         'message': 'Could not read the list of available templates'}
             message = json.dumps(messDict)
             cherrypy.log(message, traceback=True)
-            cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(404, message)
 
         # Save the templates specification to be returned
         result = list()
-        return json.dumps(result)
+        return json.dumps(result).encode('utf-8')
 
 
 class SC3MicroApi(object):
