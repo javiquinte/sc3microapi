@@ -65,10 +65,6 @@ class NetworksAPI(object):
             cherrypy.log(message, traceback=True)
             raise cherrypy.HTTPError(404, message)
 
-        # Save the templates specification to be returned
-        result = list()
-        return json.dumps(result).encode('utf-8')
-
 
 class SC3MicroApi(object):
     """Main class including the dispatcher."""
@@ -110,7 +106,7 @@ class SC3MicroApi(object):
         """
         version = '0.1a1'
         cherrypy.response.headers['Content-Type'] = 'text/plain'
-        return version
+        return version.encode('utf-8')
 
 
 """Establishing the connection to the DB."""
@@ -129,9 +125,9 @@ conn = MySQLdb.connect(host, user, password, db)
 server_config = {
     'global': {
         'tools.proxy.on': True,
-    	'server.socket_host': '127.0.0.1',
-    	'server.socket_port': 7000,
-    	'engine.autoreload_on': False
+        'server.socket_host': '127.0.0.1',
+        'server.socket_port': 7000,
+        'engine.autoreload_on': False
     }
 }
 # Update the global CherryPy configuration
