@@ -36,7 +36,7 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
-
+@cherrypy.popargs('net')
 class NetworksAPI(object):
     """Object dispatching methods related to networks."""
 
@@ -45,9 +45,11 @@ class NetworksAPI(object):
         self.conn = conn
 
     @cherrypy.expose
-    def index(self):
+    def index(self, net=None):
         """List available networks in the system.
 
+        :param net: Network code
+        :param type: str
         :returns: Data related to the available networks.
         :rtype: utf-8 encoded string
         :raises: cherrypy.HTTPError
@@ -55,12 +57,15 @@ class NetworksAPI(object):
         cherrypy.response.headers['Content-Type'] = 'application/json'
         try:
             self.cursor = self.conn.cursor()
-            self.cursor.execute('select code, start, end, netClass, archive, restricted from network')
+            query = 'select code, start, end, netClass, archive, restricted from network'
+            if net is not None:
+                query = query + ' where code="%s"' % net
+            self.cursor.execute(query)
             return json.dumps(self.cursor.fetchall()).encode('utf-8')
         except:
             # Send Error 404
             messDict = {'code': 0,
-                        'message': 'Could not read the list of available templates'}
+                        'message': 'Could not query the available networks'}
             message = json.dumps(messDict)
             cherrypy.log(message, traceback=True)
             raise cherrypy.HTTPError(404, message)
@@ -70,7 +75,7 @@ class SC3MicroApi(object):
     """Main class including the dispatcher."""
 
     def __init__(self, conn):
-        """Constructor of the Provgen object."""
+        """Constructor of the SC3MicroApi object."""
         config = configparser.RawConfigParser()
         here = os.path.dirname(__file__)
         config.read(os.path.join(here, 'sc3microapi.cfg'))
@@ -95,7 +100,7 @@ class SC3MicroApi(object):
                             </body>
                           </html>"""
 
-        return texthelp
+        return texthelp.encode('utf-8')
 
     @cherrypy.expose
     def version(self):
