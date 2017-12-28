@@ -67,7 +67,7 @@ class NetworksAPI(object):
                 whereClause.append('code="%s"' % net)
 
             if restricted is not None:
-                whereClause.append('restricted=%d' % restricted)
+                whereClause.append('restricted=%d' % int(restricted))
 
             if len(whereClause):
                 query = query + ' where ' + ' and '.join(whereClause)
