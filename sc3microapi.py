@@ -146,10 +146,10 @@ class NetworksAPI(object):
                 whereclause.append('netClass="%s"' % netclass)
 
             if starttime is not None:
-                whereclause.append('start<="%s"' % starttime)
+                whereclause.append('start>="%s"' % starttime)
 
             if endtime is not None:
-                whereclause.append('end>="%s"' % endtime)
+                whereclause.append('end<="%s"' % endtime)
 
             if len(whereclause):
                 query = query + ' where ' + ' and '.join(whereclause)
