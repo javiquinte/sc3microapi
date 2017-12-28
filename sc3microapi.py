@@ -50,7 +50,7 @@ class NetworksAPI(object):
         self.conn = conn
 
     @cherrypy.expose
-    def index(self, net=None, format='json', restricted=None):
+    def index(self, net=None, format='json', restricted=None, archive=None):
         """List available networks in the system.
 
         :param net: Network code
@@ -96,6 +96,9 @@ class NetworksAPI(object):
 
             if restricted is not None:
                 whereClause.append('restricted=%d' % restricted)
+
+            if archive is not None:
+                whereClause.append('archive=%d' % archive)
 
             if len(whereClause):
                 query = query + ' where ' + ' and '.join(whereClause)
