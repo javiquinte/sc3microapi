@@ -98,7 +98,7 @@ class NetworksAPI(object):
                 whereClause.append('restricted=%d' % restricted)
 
             if archive is not None:
-                whereClause.append('archive=%d' % archive)
+                whereClause.append('archive="%s"' % archive)
 
             if len(whereClause):
                 query = query + ' where ' + ' and '.join(whereClause)
