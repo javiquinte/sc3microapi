@@ -48,7 +48,7 @@ class NetworksAPI(object):
         self.conn = conn
 
     @cherrypy.expose
-    def index(self, net=None):
+    def index(self, net=None, restricted=None):
         """List available networks in the system.
 
         :param net: Network code
@@ -61,8 +61,17 @@ class NetworksAPI(object):
         try:
             self.cursor = self.conn.cursor()
             query = 'select code, start, end, netClass, archive, restricted from Network'
+
+            whereClause = []
             if net is not None:
-                query = query + ' where code="%s"' % net
+                whereClause.append('code="%s"' % net)
+
+            if restricted is not None:
+                whereClause.append('restricted=%d' % restricted)
+
+            if len(whereClause):
+                query = query + ' where ' + ' and '.join(whereClause)
+
             self.cursor.execute(query)
             return json.dumps(self.cursor.fetchall(), default=datetime.datetime.isoformat).encode('utf-8')
         except:
