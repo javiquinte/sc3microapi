@@ -30,12 +30,15 @@ import cherrypy
 import os
 import json
 import MySQLdb
+import logging
+import datetime
 
 try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
 
+@cherrypy.expose
 @cherrypy.popargs('net')
 class NetworksAPI(object):
     """Object dispatching methods related to networks."""
@@ -57,11 +60,11 @@ class NetworksAPI(object):
         cherrypy.response.headers['Content-Type'] = 'application/json'
         try:
             self.cursor = self.conn.cursor()
-            query = 'select code, start, end, netClass, archive, restricted from network'
+            query = 'select code, start, end, netClass, archive, restricted from Network'
             if net is not None:
                 query = query + ' where code="%s"' % net
             self.cursor.execute(query)
-            return json.dumps(self.cursor.fetchall()).encode('utf-8')
+            return json.dumps(self.cursor.fetchall(), default=datetime.datetime.isoformat).encode('utf-8')
         except:
             # Send Error 404
             messDict = {'code': 0,
@@ -76,9 +79,9 @@ class SC3MicroApi(object):
 
     def __init__(self, conn):
         """Constructor of the SC3MicroApi object."""
-        config = configparser.RawConfigParser()
-        here = os.path.dirname(__file__)
-        config.read(os.path.join(here, 'sc3microapi.cfg'))
+        # config = configparser.RawConfigParser()
+        # here = os.path.dirname(__file__)
+        # config.read(os.path.join(here, 'sc3microapi.cfg'))
 
         # Save connection
         self.conn = conn
@@ -114,32 +117,42 @@ class SC3MicroApi(object):
         return version.encode('utf-8')
 
 
-"""Establishing the connection to the DB."""
-config = configparser.RawConfigParser()
-here = os.path.dirname(__file__)
-config.read(os.path.join(here, 'sc3microapi.cfg'))
+def main():
+    """Establishing the connection to the DB."""
+    config = configparser.RawConfigParser()
+    here = os.path.dirname(__file__)
+    config.read(os.path.join(here, 'sc3microapi.cfg'))
+    
+    # Logging configuration
+    verbo = config.get('Logging', 'verbose') if config.has_option('Logging', 'verbose') else 'INFO'
+    verboNum = getattr(logging, verbo.upper(), 30)
+    logging.basicConfig(level=verboNum)
 
-# Read connection parameters
-host = config.get('mysql', 'host')
-user = config.get('mysql', 'user')
-password = config.get('mysql', 'password')
-db = config.get('mysql', 'db')
-
-conn = MySQLdb.connect(host, user, password, db)
-
-server_config = {
-    'global': {
-        'tools.proxy.on': True,
-        'server.socket_host': '127.0.0.1',
-        'server.socket_port': 7000,
-        'engine.autoreload_on': False
+    # Read connection parameters
+    host = config.get('mysql', 'host')
+    user = config.get('mysql', 'user')
+    password = config.get('mysql', 'password')
+    db = config.get('mysql', 'db')
+    
+    conn = MySQLdb.connect(host, user, password, db)
+    
+    server_config = {
+        'global': {
+            'tools.proxy.on': True,
+            'server.socket_host': 'st27dmz.gfz-potsdam.de',
+            'server.socket_port': 7000,
+            'engine.autoreload_on': False
+        }
     }
-}
-# Update the global CherryPy configuration
-cherrypy.config.update(server_config)
-cherrypy.tree.mount(SC3MicroApi(conn), '/sc3microapi')
-
-if __name__ == "__main__":
+    # Update the global CherryPy configuration
+    cherrypy.config.update(server_config)
+    cherrypy.tree.mount(SC3MicroApi(conn), '/sc3microapi')
     cherrypy.engine.signals.subscribe()
     cherrypy.engine.start()
     cherrypy.engine.block()
+
+if __name__ == "__main__":
+    main()
+    # cherrypy.engine.signals.subscribe()
+    # cherrypy.engine.start()
+    # cherrypy.engine.block()
