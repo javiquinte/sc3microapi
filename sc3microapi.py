@@ -62,17 +62,18 @@ class NetworksAPI(object):
         cherrypy.response.headers['Content-Type'] = 'application/json'
 
         # Check parameters
-        try:
-            restricted = int(restricted)
-            if restricted not in [0, 1]:
-                raise Exception
-        except:
-            # Send Error 400
-            messDict = {'code': 0,
-                        'message': 'Restricted does not seem to be 0 or 1.'}
-            message = json.dumps(messDict)
-            cherrypy.log(message, traceback=True)
-            raise cherrypy.HTTPError(400, message)
+        if restricted is not None:
+            try:
+                restricted = int(restricted)
+                if restricted not in [0, 1]:
+                    raise Exception
+            except:
+                # Send Error 400
+                messDict = {'code': 0,
+                            'message': 'Restricted does not seem to be 0 or 1.'}
+                message = json.dumps(messDict)
+                cherrypy.log(message, traceback=True)
+                raise cherrypy.HTTPError(400, message)
 
         try:
             if format not in ['json', 'text']:
@@ -94,7 +95,7 @@ class NetworksAPI(object):
                 whereClause.append('code="%s"' % net)
 
             if restricted is not None:
-                whereClause.append('restricted=%d' % int(restricted))
+                whereClause.append('restricted=%d' % restricted)
 
             if len(whereClause):
                 query = query + ' where ' + ' and '.join(whereClause)
