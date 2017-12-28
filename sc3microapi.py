@@ -28,6 +28,8 @@
 
 import cherrypy
 import os
+import io
+import csv
 import json
 import MySQLdb
 import logging
@@ -48,7 +50,7 @@ class NetworksAPI(object):
         self.conn = conn
 
     @cherrypy.expose
-    def index(self, net=None, restricted=None):
+    def index(self, net=None, format=json, restricted=None):
         """List available networks in the system.
 
         :param net: Network code
@@ -58,6 +60,31 @@ class NetworksAPI(object):
         :raises: cherrypy.HTTPError
         """
         cherrypy.response.headers['Content-Type'] = 'application/json'
+
+        # Check parameters
+        try:
+            restricted = int(restricted)
+            if restricted not in [0, 1]:
+                raise Exception
+        except:
+            # Send Error 400
+            messDict = {'code': 0,
+                        'message': 'Restricted does not seem to be 0 or 1.'}
+            message = json.dumps(messDict)
+            cherrypy.log(message, traceback=True)
+            raise cherrypy.HTTPError(400, message)
+
+        try:
+            if format not in ['json', 'text']:
+                raise Exception
+        except:
+            # Send Error 400
+            messDict = {'code': 0,
+                        'message': 'Wrong value in the "format" parameter.'}
+            message = json.dumps(messDict)
+            cherrypy.log(message, traceback=True)
+            raise cherrypy.HTTPError(400, message)
+
         try:
             self.cursor = self.conn.cursor()
             query = 'select code, start, end, netClass, archive, restricted from Network'
@@ -73,7 +100,15 @@ class NetworksAPI(object):
                 query = query + ' where ' + ' and '.join(whereClause)
 
             self.cursor.execute(query)
-            return json.dumps(self.cursor.fetchall(), default=datetime.datetime.isoformat).encode('utf-8')
+
+            if format == 'json':
+                return json.dumps(self.cursor.fetchall(), default=datetime.datetime.isoformat).encode('utf-8')
+            elif format == 'text':
+                fout = io.StringIO("")
+                writer = csv.writer(fout, delimiter='|')
+                writer.writerows(self.cursor.fetchall())
+                fout.seek(0)
+                return fout.read().encode('utf-8')
         except:
             # Send Error 404
             messDict = {'code': 0,
