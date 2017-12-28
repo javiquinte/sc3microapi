@@ -40,6 +40,25 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
+
+def str2date(dStr):
+    """Transform a string to a datetime.
+
+    :param dStr: A datetime in ISO format.
+    :type dStr: string
+    :return: A datetime represented the converted input.
+    :rtype: datetime
+    """
+    # In case of empty string
+    if not len(dStr):
+        return None
+
+    dateParts = dStr.replace('-', ' ').replace('T', ' ')
+    dateParts = dateParts.replace(':', ' ').replace('.', ' ')
+    dateParts = dateParts.replace('Z', '').split()
+    return datetime.datetime(*map(int, dateParts))
+
+
 @cherrypy.expose
 @cherrypy.popargs('net')
 class NetworksAPI(object):
@@ -51,7 +70,7 @@ class NetworksAPI(object):
 
     @cherrypy.expose
     def index(self, net=None, format='json', restricted=None, archive=None,
-              netclass=None):
+              netclass=None, starttime=None, endtime=None):
         """List available networks in the system.
 
         :param net: Network code
@@ -87,25 +106,53 @@ class NetworksAPI(object):
             cherrypy.log(message, traceback=True)
             raise cherrypy.HTTPError(400, message)
 
+        if starttime is not None:
+            try:
+                startt = str2date(starttime)
+            except:
+                # Send Error 400
+                messDict = {'code': 0,
+                            'message': 'Error converting the "starttime" parameter (%s).' % starttime}
+                message = json.dumps(messDict)
+                cherrypy.log(message, traceback=True)
+                raise cherrypy.HTTPError(400, message)
+
+        if endtime is not None:
+            try:
+                endt = str2date(endtime)
+            except:
+                # Send Error 400
+                messDict = {'code': 0,
+                            'message': 'Error converting the "endtime" parameter (%s).' % endtime}
+                message = json.dumps(messDict)
+                cherrypy.log(message, traceback=True)
+                raise cherrypy.HTTPError(400, message)
+
         try:
             self.cursor = self.conn.cursor()
             query = 'select code, start, end, netClass, archive, restricted from Network'
 
-            whereClause = []
+            whereclause = []
             if net is not None:
-                whereClause.append('code="%s"' % net)
+                whereclause.append('code="%s"' % net)
 
             if restricted is not None:
-                whereClause.append('restricted=%d' % restricted)
+                whereclause.append('restricted=%d' % restricted)
 
             if archive is not None:
-                whereClause.append('archive="%s"' % archive)
+                whereclause.append('archive="%s"' % archive)
 
             if netclass is not None:
-                whereClause.append('netClass="%s"' % netclass)
+                whereclause.append('netClass="%s"' % netclass)
 
-            if len(whereClause):
-                query = query + ' where ' + ' and '.join(whereClause)
+            if starttime is not None:
+                whereclause.append('start<="%s"' % starttime)
+
+            if endtime is not None:
+                whereclause.append('end>="%s"' % endtime)
+
+            if len(whereclause):
+                query = query + ' where ' + ' and '.join(whereclause)
 
             self.cursor.execute(query)
 
