@@ -50,7 +50,7 @@ class NetworksAPI(object):
         self.conn = conn
 
     @cherrypy.expose
-    def index(self, net=None, format=json, restricted=None):
+    def index(self, net=None, format='json', restricted=None):
         """List available networks in the system.
 
         :param net: Network code
