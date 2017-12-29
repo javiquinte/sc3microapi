@@ -77,7 +77,6 @@ class AccessAPI(object):
         :rtype: utf-8 encoded string
         :raises: cherrypy.HTTPError
         """
-        cherrypy.response.headers['Content-Type'] = 'text/plain'
 
         # Check parameters
         try:
@@ -90,6 +89,7 @@ class AccessAPI(object):
                         'message': 'Wrong formatted NSLC code (%s).' % nslc}
             message = json.dumps(messDict)
             cherrypy.log(message, traceback=True)
+            cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
         try:
@@ -100,6 +100,7 @@ class AccessAPI(object):
                         'message': 'Error converting the "starttime" parameter (%s).' % starttime}
             message = json.dumps(messDict)
             cherrypy.log(message, traceback=True)
+            cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
         try:
@@ -110,6 +111,7 @@ class AccessAPI(object):
                         'message': 'Error converting the "endtime" parameter (%s).' % endtime}
             message = json.dumps(messDict)
             cherrypy.log(message, traceback=True)
+            cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
         try:
@@ -120,6 +122,7 @@ class AccessAPI(object):
             result = self.cursor.fetchone()
 
             if (result is not None) and (result[0] == 0):
+                cherrypy.response.headers['Content-Type'] = 'text/plain'
                 return ''.encode('utf-8')
 
             query = ('select count(*) from Access where networkCode="{}" and stationCode="{}" and locationCode="{}" '
@@ -129,6 +132,7 @@ class AccessAPI(object):
             result = self.cursor.fetchone()
 
             if (result is not None) and (result[0] > 0):
+                cherrypy.response.headers['Content-Type'] = 'text/plain'
                 return ''.encode('utf-8')
 
             query = ('select count(*) from Access where networkCode="{}" and stationCode="{}" and locationCode="{}" '
@@ -138,6 +142,7 @@ class AccessAPI(object):
             result = self.cursor.fetchone()
 
             if (result is not None) and (result[0] > 0):
+                cherrypy.response.headers['Content-Type'] = 'text/plain'
                 return ''.encode('utf-8')
 
             query = ('select count(*) from Access where networkCode="{}" and stationCode="{}" and locationCode="" '
@@ -146,6 +151,7 @@ class AccessAPI(object):
             result = self.cursor.fetchone()
 
             if (result is not None) and (result[0] > 0):
+                cherrypy.response.headers['Content-Type'] = 'text/plain'
                 return ''.encode('utf-8')
 
             query = ('select count(*) from Access where networkCode="{}" and stationCode="" and locationCode="" '
@@ -154,6 +160,7 @@ class AccessAPI(object):
             result = self.cursor.fetchone()
 
             if (result is not None) and (result[0] > 0):
+                cherrypy.response.headers['Content-Type'] = 'text/plain'
                 return ''.encode('utf-8')
 
             # Send Error 403
@@ -161,6 +168,7 @@ class AccessAPI(object):
                         'message': 'Access to {} denied for {}.'.format(nslc, email)}
             message = json.dumps(messDict)
             cherrypy.log(message, traceback=True)
+            cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(403, message)
 
         except:
@@ -169,6 +177,7 @@ class AccessAPI(object):
                         'message': 'Error while querying the access to data.'}
             message = json.dumps(messDict)
             cherrypy.log(message, traceback=True)
+            cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(404, message)
 
 
@@ -288,6 +297,7 @@ class NetworksAPI(object):
                 writer = csv.writer(fout, delimiter='|')
                 writer.writerows(self.cursor.fetchall())
                 fout.seek(0)
+                cherrypy.response.headers['Content-Type'] = 'text/plain'
                 return fout.read().encode('utf-8')
         except:
             # Send Error 404
