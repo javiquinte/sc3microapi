@@ -28,8 +28,8 @@ from urllib.parse import urlparse
 import json
 from distutils.version import StrictVersion
 from xml.dom.minidom import parseString
+from HTMLParser import HTMLParser
 from unittestTools import WITestRunner
-
 
 class SC3MicroApiTests(unittest.TestCase):
     """Test the functionality of sc3microapi.py."""
@@ -58,7 +58,7 @@ class SC3MicroApiTests(unittest.TestCase):
         """Unknown parameter."""
         msg = 'An error code 400 Bad Request is expected for an unknown ' + \
             'parameter'
-        req = Request('%stemplates?wrongparam=1' % self.host)
+        req = Request('%s/network?wrongparam=1' % self.host)
         try:
             u = urlopen(req)
             u.read()
@@ -108,46 +108,46 @@ class SC3MicroApiTests(unittest.TestCase):
             msg = 'Version number not supported by distutils.version!'
             self.assertTrue(False, e)
 
-    def test_features(self):
+    def test_help(self):
         """'features' method."""
-        if self.host.endswith('/'):
-            vermethod = '%sfeatures' % self.host
-        else:
+        if not self.host.endswith('/'):
             raise Exception('Wrong service URL format. A / is expected as last character.')
 
-        req = Request(vermethod)
+        req = Request(self.host)
         try:
             u = urlopen(req)
             buffer = u.read()
         except:
-            raise Exception('Error retrieving features.')
+            raise Exception('Error retrieving help.')
 
-        # Check that the object returned seems to be JSON
+        # Check that the object returned seems to be an HTML page
         try:
-            json.loads(buffer, encoding='utf-8')
+            # instantiate the parser and fed it some HTML
+            parser = HTMLParser()
+            parser.feed(buffer)
         except Exception as e:
-            msg = 'Features could not be read/parsed!'
+            msg = 'Help format does not seem to be HTML!'
             self.assertTrue(False, e)
 
-    def test_templates(self):
-        """'templates' method."""
+    def test_network(self):
+        """'network' method."""
         if self.host.endswith('/'):
-            vermethod = '%stemplates' % self.host
+            netmethod = '%snetwork' % self.host
         else:
             raise Exception('Wrong service URL format. A / is expected as last character.')
 
-        req = Request(vermethod)
+        req = Request(netmethod)
         try:
             u = urlopen(req)
             buffer = u.read()
         except:
-            raise Exception('Error retrieving templates list.')
+            raise Exception('Error retrieving network list.')
 
-        # Check that the object returned seems to be JSON and containing templates
+        # Check that the object returned seems to be JSON and containing networks
         try:
             json.loads(buffer, encoding='utf-8')
         except Exception as e:
-            msg = 'Templates could not be read/parsed!'
+            msg = 'Networks could not be read/parsed!'
             self.assertTrue(False, e)
 
 
