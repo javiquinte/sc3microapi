@@ -60,6 +60,119 @@ def str2date(dStr):
 
 
 @cherrypy.expose
+class AccessAPI(object):
+    """Object dispatching methods related to access to streams."""
+
+    def __init__(self, conn):
+        """Constructor of the AccessAPI class."""
+        self.conn = conn
+
+    @cherrypy.expose
+    def index(self, nslc, starttime, endtime, email):
+        """Check if the user has access to a stream.
+
+        :param nslc: Network.Station.Location.Channel
+        :param type: str
+        :returns: Data related to the available networks.
+        :rtype: utf-8 encoded string
+        :raises: cherrypy.HTTPError
+        """
+        cherrypy.response.headers['Content-Type'] = 'text/plain'
+
+        # Check parameters
+        try:
+            nslc2 = nslc.split('.')
+            if len(nslc2) != 4:
+                raise Exception
+        except:
+            # Send Error 400
+            messDict = {'code': 0,
+                        'message': 'Wrong formatted NSLC code (%s).' % nslc}
+            message = json.dumps(messDict)
+            cherrypy.log(message, traceback=True)
+            raise cherrypy.HTTPError(400, message)
+
+        try:
+            startt = str2date(starttime)
+        except:
+            # Send Error 400
+            messDict = {'code': 0,
+                        'message': 'Error converting the "starttime" parameter (%s).' % starttime}
+            message = json.dumps(messDict)
+            cherrypy.log(message, traceback=True)
+            raise cherrypy.HTTPError(400, message)
+
+        try:
+            endt = str2date(endtime)
+        except:
+            # Send Error 400
+            messDict = {'code': 0,
+                        'message': 'Error converting the "endtime" parameter (%s).' % endtime}
+            message = json.dumps(messDict)
+            cherrypy.log(message, traceback=True)
+            raise cherrypy.HTTPError(400, message)
+
+        try:
+            self.cursor = self.conn.cursor()
+            query = 'select restricted from Network where code="%s" and start<="%s" and (end>="%s" or end is NULL)' \
+                    % (nslc2[0], starttime, endtime)
+            self.cursor.execute(query)
+            result = self.cursor.fetchone()
+
+            if (result is not None) and (result[0] == 0):
+                return ''.encode('utf-8')
+
+            query = ('select count(*) from Access where networkCode="{}" and stationCode="{}" and locationCode="{}" '
+                     'and streamCode="{}" and "{}" LIKE concat("%", user, "%")').format(nslc2[0], nslc2[1], nslc2[2],
+                                                                                        nslc2[3], email)
+            self.cursor.execute(query)
+            result = self.cursor.fetchone()
+
+            if (result is not None) and (result[0] > 0):
+                return ''.encode('utf-8')
+
+            query = ('select count(*) from Access where networkCode="{}" and stationCode="{}" and locationCode="{}" '
+                     'and streamCode="" and "{}" LIKE concat("%", user, "%")').format(nslc2[0], nslc2[1], nslc2[2],
+                                                                                      email)
+            self.cursor.execute(query)
+            result = self.cursor.fetchone()
+
+            if (result is not None) and (result[0] > 0):
+                return ''.encode('utf-8')
+
+            query = ('select count(*) from Access where networkCode="{}" and stationCode="{}" and locationCode="" '
+                     'and streamCode="" and "{}" LIKE concat("%", user, "%")').format(nslc2[0], nslc2[1], email)
+            self.cursor.execute(query)
+            result = self.cursor.fetchone()
+
+            if (result is not None) and (result[0] > 0):
+                return ''.encode('utf-8')
+
+            query = ('select count(*) from Access where networkCode="{}" and stationCode="" and locationCode="" '
+                     'and streamCode="" and "{}" LIKE concat("%", user, "%")').format(nslc2[0], email)
+            self.cursor.execute(query)
+            result = self.cursor.fetchone()
+
+            if (result is not None) and (result[0] > 0):
+                return ''.encode('utf-8')
+
+            # Send Error 403
+            messDict = {'code': 0,
+                        'message': 'Access to {} denied for {}.'.format(nslc, email)}
+            message = json.dumps(messDict)
+            cherrypy.log(message, traceback=True)
+            raise cherrypy.HTTPError(403, message)
+
+        except:
+            # Send Error 404
+            messDict = {'code': 0,
+                        'message': 'Error while querying the access to data.'}
+            message = json.dumps(messDict)
+            cherrypy.log(message, traceback=True)
+            raise cherrypy.HTTPError(404, message)
+
+
+@cherrypy.expose
 @cherrypy.popargs('net')
 class NetworksAPI(object):
     """Object dispatching methods related to networks."""
@@ -69,12 +182,24 @@ class NetworksAPI(object):
         self.conn = conn
 
     @cherrypy.expose
-    def index(self, net=None, format='json', restricted=None, archive=None,
+    def index(self, net=None, outformat='json', restricted=None, archive=None,
               netclass=None, starttime=None, endtime=None):
         """List available networks in the system.
 
         :param net: Network code
-        :param type: str
+        :type net: str
+        :param outformat: Output format (json, text)
+        :type outformat: str
+        :param restricted: Restricted status of the Network ('0' or '1')
+        :type restricted: str
+        :param archive: Institution archiving the network
+        :type archive: str
+        :param netclass: Tpye of network (permanent 'p' or temporary 't')
+        :type netclass: str
+        :param starttime: Start time in isoformat
+        :type starttime: str
+        :param endtime: End time in isoformat
+        :type endtime: str
         :returns: Data related to the available networks.
         :rtype: utf-8 encoded string
         :raises: cherrypy.HTTPError
@@ -156,9 +281,9 @@ class NetworksAPI(object):
 
             self.cursor.execute(query)
 
-            if format == 'json':
+            if outformat == 'json':
                 return json.dumps(self.cursor.fetchall(), default=datetime.datetime.isoformat).encode('utf-8')
-            elif format == 'text':
+            elif outformat == 'text':
                 fout = io.StringIO("")
                 writer = csv.writer(fout, delimiter='|')
                 writer.writerows(self.cursor.fetchall())
@@ -185,6 +310,7 @@ class SC3MicroApi(object):
         # Save connection
         self.conn = conn
         self.network = NetworksAPI(conn)
+        self.access = AccessAPI(conn)
 
     @cherrypy.expose
     def index(self):
