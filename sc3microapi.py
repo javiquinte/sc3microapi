@@ -80,7 +80,8 @@ class AccessAPI(object):
 
         # Check parameters
         try:
-            nslc2 = nslc.split('.')
+            auxnslc = nslc.split('.')
+            nslc2 = [auxnslc[pos] if len(auxnslc) > pos else '' for pos in range(4)]
             if len(nslc2) != 4:
                 raise Exception
         except:
