@@ -117,77 +117,75 @@ class AccessAPI(object):
                 cherrypy.response.headers['Content-Type'] = 'application/json'
                 raise cherrypy.HTTPError(400, message)
 
-        try:
-            # Check if network is restricted
-            whereclause = ['code="%s"' % nslc2[0]]
+        # Check if network is restricted
+        whereclause = ['code="%s"' % nslc2[0]]
 
-            if starttime is not None:
-                whereclause.append('start<="%s"' % starttime)
+        if starttime is not None:
+            whereclause.append('start<="%s"' % starttime)
 
-            if endtime is not None:
-                whereclause.append('(end>="%s" or end is NULL)' % endtime)
+        if endtime is not None:
+            whereclause.append('(end>="%s" or end is NULL)' % endtime)
 
-            self.cursor = self.conn.cursor()
-            query = 'select restricted from Network where '
-            query = query + ' and '.join(whereclause)
+        self.cursor = self.conn.cursor()
+        query = 'select distinct restricted from Network where '
+        query = query + ' and '.join(whereclause)
 
-            self.cursor.execute(query)
-            result = self.cursor.fetchone()
-
-            if (result is not None) and (result[0] == 0):
-                cherrypy.response.headers['Content-Type'] = 'text/plain'
-                return ''.encode('utf-8')
-
-            # Check network access
-            whereclause = ['networkCode="{}"'.format(nslc2[0]),
-                           'stationCode=""',
-                           'locationCode=""',
-                           'streamCode=""',
-                           '"{}" LIKE concat("%", user, "%")'.format(email)]
-            query = 'select count(*) from Access where ' + ' and '.join(whereclause)
-            self.cursor.execute(query)
-            result = self.cursor.fetchone()
-
-            if (result is not None) and (result[0] > 0):
-                cherrypy.response.headers['Content-Type'] = 'text/plain'
-                return ''.encode('utf-8')
-
-            # Check station access
-            whereclause = ['networkCode="{}"'.format(nslc2[0]),
-                           'stationCode="{}"'.format(nslc2[1]),
-                           'locationCode=""',
-                           'streamCode=""',
-                           '"{}" LIKE concat("%", user, "%")'.format(email)]
-            query = 'select count(*) from Access where ' + ' and '.join(whereclause)
-            self.cursor.execute(query)
-            result = self.cursor.fetchone()
-
-            if (result is not None) and (result[0] > 0):
-                cherrypy.response.headers['Content-Type'] = 'text/plain'
-                return ''.encode('utf-8')
-
-            # Check channel access
-            whereclause = ['networkCode="{}"'.format(nslc2[0]),
-                           'stationCode="{}"'.format(nslc2[1]),
-                           'locationCode="{}"'.format(nslc2[2]),
-                           'streamCode="{}"'.format(nslc2[3]),
-                           '"{}" LIKE concat("%", user, "%")'.format(email)]
-            query = 'select count(*) from Access where ' + ' and '.join(whereclause)
-            self.cursor.execute(query)
-            result = self.cursor.fetchone()
-
-            if (result is not None) and (result[0] > 0):
-                cherrypy.response.headers['Content-Type'] = 'text/plain'
-                return ''.encode('utf-8')
-
-        except:
-            # Send Error 404
+        self.cursor.execute(query)
+        result = self.cursor.fetchall()
+        if len(result)>1:
+            # Send Error 400
             messDict = {'code': 0,
-                        'message': 'Error while querying the access to data.'}
+                        'message': 'Restricted and non-restricted streams found. More filters are needed.'}
             message = json.dumps(messDict)
             cherrypy.log(message, traceback=True)
             cherrypy.response.headers['Content-Type'] = 'application/json'
-            raise cherrypy.HTTPError(404, message)
+            raise cherrypy.HTTPError(400, message)
+
+        if (result is not None) and (result[0] == 0):
+            cherrypy.response.headers['Content-Type'] = 'text/plain'
+            return ''.encode('utf-8')
+
+        # Check network access
+        whereclause = ['networkCode="{}"'.format(nslc2[0]),
+                       'stationCode=""',
+                       'locationCode=""',
+                       'streamCode=""',
+                       '"{}" LIKE concat("%", user, "%")'.format(email)]
+        query = 'select count(*) from Access where ' + ' and '.join(whereclause)
+        self.cursor.execute(query)
+        result = self.cursor.fetchone()
+
+        if (result is not None) and (result[0] > 0):
+            cherrypy.response.headers['Content-Type'] = 'text/plain'
+            return ''.encode('utf-8')
+
+        # Check station access
+        whereclause = ['networkCode="{}"'.format(nslc2[0]),
+                       'stationCode="{}"'.format(nslc2[1]),
+                       'locationCode=""',
+                       'streamCode=""',
+                       '"{}" LIKE concat("%", user, "%")'.format(email)]
+        query = 'select count(*) from Access where ' + ' and '.join(whereclause)
+        self.cursor.execute(query)
+        result = self.cursor.fetchone()
+
+        if (result is not None) and (result[0] > 0):
+            cherrypy.response.headers['Content-Type'] = 'text/plain'
+            return ''.encode('utf-8')
+
+        # Check channel access
+        whereclause = ['networkCode="{}"'.format(nslc2[0]),
+                       'stationCode="{}"'.format(nslc2[1]),
+                       'locationCode="{}"'.format(nslc2[2]),
+                       'streamCode="{}"'.format(nslc2[3]),
+                       '"{}" LIKE concat("%", user, "%")'.format(email)]
+        query = 'select count(*) from Access where ' + ' and '.join(whereclause)
+        self.cursor.execute(query)
+        result = self.cursor.fetchone()
+
+        if (result is not None) and (result[0] > 0):
+            cherrypy.response.headers['Content-Type'] = 'text/plain'
+            return ''.encode('utf-8')
 
         # Send Error 403
         messDict = {'code': 0,
