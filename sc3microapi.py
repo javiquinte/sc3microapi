@@ -118,9 +118,19 @@ class AccessAPI(object):
                 raise cherrypy.HTTPError(400, message)
 
         try:
+            # Check if network is restricted
+            whereclause = ['code="%s"' % nslc2[0]]
+
+            if starttime is not None:
+                whereclause.append('start<="%s"' % starttime)
+
+            if endtime is not None:
+                whereclause.append('(end>="%s" or end is NULL)' % endtime)
+
             self.cursor = self.conn.cursor()
-            query = 'select restricted from Network where code="%s" and start<="%s" and (end>="%s" or end is NULL)' \
-                    % (nslc2[0], starttime, endtime)
+            query = 'select restricted from Network where '
+            query = query + ' and '.join(whereclause)
+
             self.cursor.execute(query)
             result = self.cursor.fetchone()
 
@@ -128,9 +138,13 @@ class AccessAPI(object):
                 cherrypy.response.headers['Content-Type'] = 'text/plain'
                 return ''.encode('utf-8')
 
-            query = ('select count(*) from Access where networkCode="{}" and stationCode="{}" and locationCode="{}" '
-                     'and streamCode="{}" and "{}" LIKE concat("%", user, "%")').format(nslc2[0], nslc2[1], nslc2[2],
-                                                                                        nslc2[3], email)
+            # Check network access
+            whereclause = ['networkCode="{}"'.format(nslc2[0]),
+                           'stationCode=""',
+                           'locationCode=""',
+                           'streamCode=""',
+                           '"{}" LIKE concat("%", user, "%")'.format(email)]
+            query = 'select count(*) from Access where ' + ' and '.join(whereclause)
             self.cursor.execute(query)
             result = self.cursor.fetchone()
 
@@ -138,9 +152,13 @@ class AccessAPI(object):
                 cherrypy.response.headers['Content-Type'] = 'text/plain'
                 return ''.encode('utf-8')
 
-            query = ('select count(*) from Access where networkCode="{}" and stationCode="{}" and locationCode="{}" '
-                     'and streamCode="" and "{}" LIKE concat("%", user, "%")').format(nslc2[0], nslc2[1], nslc2[2],
-                                                                                      email)
+            # Check station access
+            whereclause = ['networkCode="{}"'.format(nslc2[0]),
+                           'stationCode="{}"'.format(nslc2[1]),
+                           'locationCode=""',
+                           'streamCode=""',
+                           '"{}" LIKE concat("%", user, "%")'.format(email)]
+            query = 'select count(*) from Access where ' + ' and '.join(whereclause)
             self.cursor.execute(query)
             result = self.cursor.fetchone()
 
@@ -148,17 +166,13 @@ class AccessAPI(object):
                 cherrypy.response.headers['Content-Type'] = 'text/plain'
                 return ''.encode('utf-8')
 
-            query = ('select count(*) from Access where networkCode="{}" and stationCode="{}" and locationCode="" '
-                     'and streamCode="" and "{}" LIKE concat("%", user, "%")').format(nslc2[0], nslc2[1], email)
-            self.cursor.execute(query)
-            result = self.cursor.fetchone()
-
-            if (result is not None) and (result[0] > 0):
-                cherrypy.response.headers['Content-Type'] = 'text/plain'
-                return ''.encode('utf-8')
-
-            query = ('select count(*) from Access where networkCode="{}" and stationCode="" and locationCode="" '
-                     'and streamCode="" and "{}" LIKE concat("%", user, "%")').format(nslc2[0], email)
+            # Check channel access
+            whereclause = ['networkCode="{}"'.format(nslc2[0]),
+                           'stationCode="{}"'.format(nslc2[1]),
+                           'locationCode="{}"'.format(nslc2[2]),
+                           'streamCode="{}"'.format(nslc2[3]),
+                           '"{}" LIKE concat("%", user, "%")'.format(email)]
+            query = 'select count(*) from Access where ' + ' and '.join(whereclause)
             self.cursor.execute(query)
             result = self.cursor.fetchone()
 
