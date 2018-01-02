@@ -180,14 +180,6 @@ class AccessAPI(object):
                 cherrypy.response.headers['Content-Type'] = 'text/plain'
                 return ''.encode('utf-8')
 
-            # Send Error 403
-            messDict = {'code': 0,
-                        'message': 'Access to {} denied for {}.'.format(nslc, email)}
-            message = json.dumps(messDict)
-            cherrypy.log(message, traceback=True)
-            cherrypy.response.headers['Content-Type'] = 'application/json'
-            raise cherrypy.HTTPError(403, message)
-
         except:
             # Send Error 404
             messDict = {'code': 0,
@@ -196,6 +188,14 @@ class AccessAPI(object):
             cherrypy.log(message, traceback=True)
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(404, message)
+
+        # Send Error 403
+        messDict = {'code': 0,
+                    'message': 'Access to {} denied for {}.'.format(nslc, email)}
+        message = json.dumps(messDict)
+        cherrypy.log(message, traceback=True)
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        raise cherrypy.HTTPError(403, message)
 
 
 @cherrypy.expose
