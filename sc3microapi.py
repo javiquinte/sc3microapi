@@ -132,7 +132,7 @@ class AccessAPI(object):
 
         self.cursor.execute(query)
         result = self.cursor.fetchall()
-        if len(result)>1:
+        if len(result) != 1:
             # Send Error 400
             messDict = {'code': 0,
                         'message': 'Restricted and non-restricted streams found. More filters are needed.'}
@@ -141,7 +141,7 @@ class AccessAPI(object):
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
-        if (result is not None) and (result[0] == 0):
+        if (result[0] is not None) and (result[0][0] == 0):
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
