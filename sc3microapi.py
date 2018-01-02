@@ -68,7 +68,7 @@ class AccessAPI(object):
         self.conn = conn
 
     @cherrypy.expose
-    def index(self, nslc, starttime, endtime, email):
+    def index(self, nslc, email, starttime=None, endtime=None):
         """Check if the user has access to a stream.
 
         :param nslc: Network.Station.Location.Channel
