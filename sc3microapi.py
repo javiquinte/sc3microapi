@@ -93,27 +93,29 @@ class AccessAPI(object):
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
-        try:
-            startt = str2date(starttime)
-        except:
-            # Send Error 400
-            messDict = {'code': 0,
-                        'message': 'Error converting the "starttime" parameter (%s).' % starttime}
-            message = json.dumps(messDict)
-            cherrypy.log(message, traceback=True)
-            cherrypy.response.headers['Content-Type'] = 'application/json'
-            raise cherrypy.HTTPError(400, message)
+        if starttime is not None:
+            try:
+                startt = str2date(starttime)
+            except:
+                # Send Error 400
+                messDict = {'code': 0,
+                            'message': 'Error converting the "starttime" parameter (%s).' % starttime}
+                message = json.dumps(messDict)
+                cherrypy.log(message, traceback=True)
+                cherrypy.response.headers['Content-Type'] = 'application/json'
+                raise cherrypy.HTTPError(400, message)
 
-        try:
-            endt = str2date(endtime)
-        except:
-            # Send Error 400
-            messDict = {'code': 0,
-                        'message': 'Error converting the "endtime" parameter (%s).' % endtime}
-            message = json.dumps(messDict)
-            cherrypy.log(message, traceback=True)
-            cherrypy.response.headers['Content-Type'] = 'application/json'
-            raise cherrypy.HTTPError(400, message)
+        if endtime is not None:
+            try:
+                endt = str2date(endtime)
+            except:
+                # Send Error 400
+                messDict = {'code': 0,
+                            'message': 'Error converting the "endtime" parameter (%s).' % endtime}
+                message = json.dumps(messDict)
+                cherrypy.log(message, traceback=True)
+                cherrypy.response.headers['Content-Type'] = 'application/json'
+                raise cherrypy.HTTPError(400, message)
 
         try:
             self.cursor = self.conn.cursor()
