@@ -157,9 +157,13 @@ class AccessAPI(object):
         self.cursor.execute(query)
         result = self.cursor.fetchall()
         if len(result) != 1:
+            if len(result):
+                mess = 'Restricted and non-restricted streams found. More filters are needed.'
+            else:
+                mess = 'Network not found!'
             # Send Error 400
             messDict = {'code': 0,
-                        'message': 'Restricted and non-restricted streams found. More filters are needed.'}
+                        'message': mess}
             message = json.dumps(messDict)
             cherrypy.log(message)
             cherrypy.response.headers['Content-Type'] = 'application/json'
@@ -175,12 +179,12 @@ class AccessAPI(object):
             return ''.encode('utf-8')
 
         # Check station access
-        if self.__access(email, net=nslc2[0], sta=nslc2[1], starttime=starttime, endtime=endtime) :
+        if len(nslc2[1]) and self.__access(email, net=nslc2[0], sta=nslc2[1], starttime=starttime, endtime=endtime):
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
         # Check channel access
-        if self.__access(email, net=nslc2[0], sta=nslc2[1], loc=nslc2[2], cha=nslc2[3],
+        if len(nslc2[3]) and self.__access(email, net=nslc2[0], sta=nslc2[1], loc=nslc2[2], cha=nslc2[3],
                          starttime=starttime, endtime=endtime) :
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
