@@ -109,7 +109,7 @@ class SC3MicroApiTests(unittest.TestCase):
         try:
             # instantiate the parser and fed it some HTML
             parser = HTMLParser()
-            parser.feed(buffer)
+            parser.feed(buffer.decode('utf-8'))
         except Exception as e:
             msg = 'Help format does not seem to be HTML!'
             self.assertTrue(False, e)
@@ -130,7 +130,7 @@ class SC3MicroApiTests(unittest.TestCase):
 
         # Check that the object returned seems to be JSON and containing networks
         try:
-            json.loads(buffer, encoding='utf-8')
+            json.loads(buffer.decode('utf-8'), encoding='utf-8')
         except Exception as e:
             msg = 'Networks could not be read/parsed!'
             self.assertTrue(False, e)
