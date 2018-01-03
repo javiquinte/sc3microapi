@@ -67,7 +67,7 @@ class AccessAPI(object):
         """Constructor of the AccessAPI class."""
         self.conn = conn
 
-    def __access(self, email, net='', sta='', loc='', cha=''):
+    def __access(self, email, net='', sta='', loc='', cha='', starttime=None, endtime=None):
         # Check network access
         self.cursor = self.conn.cursor()
         whereclause = ['networkCode="{}"'.format(net),
@@ -75,14 +75,21 @@ class AccessAPI(object):
                        'locationCode="{}"'.format(loc),
                        'streamCode="{}"'.format(cha),
                        '"{}" LIKE concat("%", user, "%")'.format(email)]
+
+        if (starttime is not None):
+            whereclause.append('start<="{}"'.format(starttime))
+
+        if (endtime is not None):
+            whereclause.append('(end>="{}" or end is NULL)'.format(endtime))
+
         query = 'select count(*) from Access where ' + ' and '.join(whereclause)
         self.cursor.execute(query)
         result = self.cursor.fetchone()
 
-        if (result is not None) and (result[0] > 0):
-            return True
+        if (result is not None):
+            return result[0]
 
-        return False
+        raise Exception('No result querying the DB ({})'.format(query))
 
     @cherrypy.expose
     def index(self, nslc, email, starttime=None, endtime=None):
@@ -163,17 +170,18 @@ class AccessAPI(object):
             return ''.encode('utf-8')
 
         # Check network access
-        if self.__access(email, nslc2[0]) :
+        if self.__access(email, net=nslc2[0], starttime=starttime, endtime=endtime) :
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
         # Check station access
-        if self.__access(email, nslc2[0], nslc2[1]) :
+        if self.__access(email, net=nslc2[0], sta=nslc2[1], starttime=starttime, endtime=endtime) :
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
         # Check channel access
-        if self.__access(email, nslc2[0], nslc2[1], nslc2[2], nslc2[3]) :
+        if self.__access(email, net=nslc2[0], sta=nslc2[1], loc=nslc2[2], cha=nslc2[3],
+                         starttime=starttime, endtime=endtime) :
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
