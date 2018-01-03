@@ -58,7 +58,7 @@ class SC3MicroApiTests(unittest.TestCase):
         """Unknown parameter."""
         msg = 'An error code 400 Bad Request is expected for an unknown ' + \
             'parameter'
-        req = Request('%s/network?wrongparam=1' % self.host)
+        req = Request('%s/network/?wrongparam=1' % self.host)
         try:
             u = urlopen(req)
             u.read()
@@ -71,7 +71,7 @@ class SC3MicroApiTests(unittest.TestCase):
 
     def test_wrong_format(self):
         """Wrong format option."""
-        req = Request('%s?net=GE&format=WRONGFORMAT' % self.host)
+        req = Request('%s/network/?format=WRONGFORMAT' % self.host)
         msg = 'When a wrong format is specified an error code 400 is expected!'
         try:
             u = urlopen(req)
@@ -132,7 +132,7 @@ class SC3MicroApiTests(unittest.TestCase):
     def test_network(self):
         """'network' method."""
         if self.host.endswith('/'):
-            netmethod = '%snetwork' % self.host
+            netmethod = '%snetwork/' % self.host
         else:
             raise Exception('Wrong service URL format. A / is expected as last character.')
 
