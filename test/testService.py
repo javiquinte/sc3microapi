@@ -28,7 +28,7 @@ from urllib.parse import urlparse
 import json
 from distutils.version import StrictVersion
 from xml.dom.minidom import parseString
-from HTMLParser import HTMLParser
+from html.parser import HTMLParser
 from unittestTools import WITestRunner
 
 class SC3MicroApiTests(unittest.TestCase):
@@ -38,21 +38,6 @@ class SC3MicroApiTests(unittest.TestCase):
     def setUp(cls):
         """Setting up test."""
         cls.host = host
-
-    def test_long_URI(self):
-        """Very large URI."""
-        msg = 'A URI of more than 2000 characters is not allowed and ' + \
-            'should return a 414 error code'
-        req = Request('%stemplates?key=value%s' % (self.host, '&key=value' * 500))
-        try:
-            u = urlopen(req)
-            u.read()
-        except HTTPError as e:
-            self.assertEqual(e.getcode(), 414, msg)
-            return
-
-        self.assertTrue(False, msg)
-        return
 
     def test_wrong_parameter(self):
         """Unknown parameter."""
@@ -109,7 +94,7 @@ class SC3MicroApiTests(unittest.TestCase):
             self.assertTrue(False, e)
 
     def test_help(self):
-        """'features' method."""
+        """Help if no method is defined."""
         if not self.host.endswith('/'):
             raise Exception('Wrong service URL format. A / is expected as last character.')
 
