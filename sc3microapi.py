@@ -89,7 +89,7 @@ class AccessAPI(object):
             messDict = {'code': 0,
                         'message': 'Wrong formatted NSLC code (%s).' % nslc}
             message = json.dumps(messDict)
-            cherrypy.log(message, traceback=True)
+            cherrypy.log(message)
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
@@ -101,7 +101,7 @@ class AccessAPI(object):
                 messDict = {'code': 0,
                             'message': 'Error converting the "starttime" parameter (%s).' % starttime}
                 message = json.dumps(messDict)
-                cherrypy.log(message, traceback=True)
+                cherrypy.log(message)
                 cherrypy.response.headers['Content-Type'] = 'application/json'
                 raise cherrypy.HTTPError(400, message)
 
@@ -113,7 +113,7 @@ class AccessAPI(object):
                 messDict = {'code': 0,
                             'message': 'Error converting the "endtime" parameter (%s).' % endtime}
                 message = json.dumps(messDict)
-                cherrypy.log(message, traceback=True)
+                cherrypy.log(message)
                 cherrypy.response.headers['Content-Type'] = 'application/json'
                 raise cherrypy.HTTPError(400, message)
 
@@ -137,7 +137,7 @@ class AccessAPI(object):
             messDict = {'code': 0,
                         'message': 'Restricted and non-restricted streams found. More filters are needed.'}
             message = json.dumps(messDict)
-            cherrypy.log(message, traceback=True)
+            cherrypy.log(message)
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
@@ -191,7 +191,7 @@ class AccessAPI(object):
         messDict = {'code': 0,
                     'message': 'Access to {} denied for {}.'.format(nslc, email)}
         message = json.dumps(messDict)
-        cherrypy.log(message, traceback=True)
+        cherrypy.log(message)
         cherrypy.response.headers['Content-Type'] = 'application/json'
         raise cherrypy.HTTPError(403, message)
 
@@ -241,7 +241,7 @@ class NetworksAPI(object):
                 messDict = {'code': 0,
                             'message': 'Restricted does not seem to be 0 or 1.'}
                 message = json.dumps(messDict)
-                cherrypy.log(message, traceback=True)
+                cherrypy.log(message)
                 raise cherrypy.HTTPError(400, message)
 
         try:
@@ -252,7 +252,7 @@ class NetworksAPI(object):
             messDict = {'code': 0,
                         'message': 'Wrong value in the "format" parameter.'}
             message = json.dumps(messDict)
-            cherrypy.log(message, traceback=True)
+            cherrypy.log(message)
             raise cherrypy.HTTPError(400, message)
 
         if starttime is not None:
@@ -263,7 +263,7 @@ class NetworksAPI(object):
                 messDict = {'code': 0,
                             'message': 'Error converting the "starttime" parameter (%s).' % starttime}
                 message = json.dumps(messDict)
-                cherrypy.log(message, traceback=True)
+                cherrypy.log(message)
                 raise cherrypy.HTTPError(400, message)
 
         if endtime is not None:
@@ -274,7 +274,7 @@ class NetworksAPI(object):
                 messDict = {'code': 0,
                             'message': 'Error converting the "endtime" parameter (%s).' % endtime}
                 message = json.dumps(messDict)
-                cherrypy.log(message, traceback=True)
+                cherrypy.log(message)
                 raise cherrypy.HTTPError(400, message)
 
         try:
@@ -319,7 +319,7 @@ class NetworksAPI(object):
             messDict = {'code': 0,
                         'message': 'Could not query the available networks'}
             message = json.dumps(messDict)
-            cherrypy.log(message, traceback=True)
+            cherrypy.log(message)
             raise cherrypy.HTTPError(404, message)
 
 
