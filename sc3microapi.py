@@ -67,6 +67,23 @@ class AccessAPI(object):
         """Constructor of the AccessAPI class."""
         self.conn = conn
 
+    def __access(self, email, net='', sta='', loc='', cha=''):
+        # Check network access
+        self.cursor = self.conn.cursor()
+        whereclause = ['networkCode="{}"'.format(net),
+                       'stationCode="{}"'.format(sta),
+                       'locationCode="{}"'.format(loc),
+                       'streamCode="{}"'.format(cha),
+                       '"{}" LIKE concat("%", user, "%")'.format(email)]
+        query = 'select count(*) from Access where ' + ' and '.join(whereclause)
+        self.cursor.execute(query)
+        result = self.cursor.fetchone()
+
+        if (result is not None) and (result[0] > 0):
+            return True
+
+        return False
+
     @cherrypy.expose
     def index(self, nslc, email, starttime=None, endtime=None):
         """Check if the user has access to a stream.
@@ -146,44 +163,17 @@ class AccessAPI(object):
             return ''.encode('utf-8')
 
         # Check network access
-        whereclause = ['networkCode="{}"'.format(nslc2[0]),
-                       'stationCode=""',
-                       'locationCode=""',
-                       'streamCode=""',
-                       '"{}" LIKE concat("%", user, "%")'.format(email)]
-        query = 'select count(*) from Access where ' + ' and '.join(whereclause)
-        self.cursor.execute(query)
-        result = self.cursor.fetchone()
-
-        if (result is not None) and (result[0] > 0):
+        if self.__access(email, nslc2[0]) :
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
         # Check station access
-        whereclause = ['networkCode="{}"'.format(nslc2[0]),
-                       'stationCode="{}"'.format(nslc2[1]),
-                       'locationCode=""',
-                       'streamCode=""',
-                       '"{}" LIKE concat("%", user, "%")'.format(email)]
-        query = 'select count(*) from Access where ' + ' and '.join(whereclause)
-        self.cursor.execute(query)
-        result = self.cursor.fetchone()
-
-        if (result is not None) and (result[0] > 0):
+        if self.__access(email, nslc2[0], nslc2[1]) :
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
         # Check channel access
-        whereclause = ['networkCode="{}"'.format(nslc2[0]),
-                       'stationCode="{}"'.format(nslc2[1]),
-                       'locationCode="{}"'.format(nslc2[2]),
-                       'streamCode="{}"'.format(nslc2[3]),
-                       '"{}" LIKE concat("%", user, "%")'.format(email)]
-        query = 'select count(*) from Access where ' + ' and '.join(whereclause)
-        self.cursor.execute(query)
-        result = self.cursor.fetchone()
-
-        if (result is not None) and (result[0] > 0):
+        if self.__access(email, nslc2[0], nslc2[1], nslc2[2], nslc2[3]) :
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
