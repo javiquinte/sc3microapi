@@ -135,6 +135,50 @@ class SC3MicroApiTests(unittest.TestCase):
             msg = 'Networks could not be read/parsed!'
             self.assertTrue(False, e)
 
+    def test_access_2F_denied(self):
+        """access to network 2F for a non-GFZ email account."""
+
+        msg = 'Access to 2F from a non-GFZ account should be denied with a 403 code.'
+        if self.host.endswith('/'):
+            accmethod = '{}access/?nslc=2F&email=none@none.com&starttime=2013-01-01&endtime=2013-01-01'.format(self.host)
+        else:
+            raise Exception('Wrong service URL format. A / is expected as last character.')
+
+        req = Request(accmethod)
+        try:
+            u = urlopen(req)
+            buffer = u.read()
+        except HTTPError as e:
+            if hasattr(e, 'code'):
+                self.assertEqual(e.getcode(), 403, '%s (%s)' % (msg, e.code))
+                return
+
+            self.assertTrue(False, '%s (%s)' % (msg, e))
+            return
+
+        self.assertTrue(False, msg)
+        return
+
+    def test_access_2F_allowed(self):
+        """access to network 2F for a GFZ email account."""
+
+        msg = 'Access to 2F from a GFZ account should be allowed.'
+        if self.host.endswith('/'):
+            accmethod = '{}access/?nslc=2F&email=none@gfz-potsdam.de&starttime=2013-01-01&endtime=2013-01-01'.format(self.host)
+        else:
+            raise Exception('Wrong service URL format. A / is expected as last character.')
+
+        req = Request(accmethod)
+        try:
+            u = urlopen(req)
+            buffer = u.read()
+        except HTTPError as e:
+                self.assertTrue(False, '%s (%s)' % (msg, e))
+                return
+
+        self.assertTrue(True, msg)
+        return
+
 
 # ----------------------------------------------------------------------
 def usage():
