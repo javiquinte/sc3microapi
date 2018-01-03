@@ -135,6 +135,55 @@ class SC3MicroApiTests(unittest.TestCase):
             msg = 'Networks could not be read/parsed!'
             self.assertTrue(False, e)
 
+    def test_network_GE(self):
+        """'network' method for GE."""
+        if self.host.endswith('/'):
+            netmethod = '%snetwork/GE/' % self.host
+        else:
+            raise Exception('Wrong service URL format. A / is expected as last character.')
+
+        req = Request(netmethod)
+        try:
+            u = urlopen(req)
+            buffer = u.read()
+        except:
+            raise Exception('Error retrieving network list.')
+
+        # Check that the object returned seems to be JSON and containing networks
+        try:
+            json.loads(buffer.decode('utf-8'), encoding='utf-8')
+        except Exception as e:
+            msg = 'Network GE could not be read/parsed!'
+            self.assertTrue(False, e)
+
+    def test_network_XX(self):
+        """'network' method for an unknown network (XX)."""
+
+        msg = 'The search for network XX should return a 204 error code.'
+        if self.host.endswith('/'):
+            netmethod = '%snetwork/XX/' % self.host
+        else:
+            raise Exception('Wrong service URL format. A / is expected as last character.')
+
+        req = Request(netmethod)
+        try:
+            u = urlopen(req)
+            buffer = u.read()
+        except HTTPError as e:
+            if hasattr(e, 'code'):
+                self.assertEqual(e.getcode(), 204, '%s (%s)' % (msg, e.code))
+                return
+
+            self.assertTrue(False, '%s (%s)' % (msg, e))
+            return
+
+        # Check that the object returned seems to be JSON and containing networks
+        try:
+            json.loads(buffer.decode('utf-8'), encoding='utf-8')
+        except Exception as e:
+            msg = 'Network GE could not be read/parsed!'
+            self.assertTrue(False, e)
+
     def test_access_2F_denied(self):
         """access to network 2F for a non-GFZ email account."""
 
@@ -165,6 +214,26 @@ class SC3MicroApiTests(unittest.TestCase):
         msg = 'Access to 2F from a GFZ account should be allowed.'
         if self.host.endswith('/'):
             accmethod = '{}access/?nslc=2F&email=none@gfz-potsdam.de&starttime=2013-01-01&endtime=2013-01-01'.format(self.host)
+        else:
+            raise Exception('Wrong service URL format. A / is expected as last character.')
+
+        req = Request(accmethod)
+        try:
+            u = urlopen(req)
+            buffer = u.read()
+        except HTTPError as e:
+                self.assertTrue(False, '%s (%s)' % (msg, e))
+                return
+
+        self.assertTrue(True, msg)
+        return
+
+    def test_access_GE_allowed(self):
+        """access to network GE for any email account."""
+
+        msg = 'Access to GE from any email account should be allowed.'
+        if self.host.endswith('/'):
+            accmethod = '{}access/?nslc=GE&email=none@none.com&starttime=2013-01-01&endtime=2013-01-01'.format(self.host)
         else:
             raise Exception('Wrong service URL format. A / is expected as last character.')
 
