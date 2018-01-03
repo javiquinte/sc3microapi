@@ -248,6 +248,70 @@ class SC3MicroApiTests(unittest.TestCase):
         self.assertTrue(True, msg)
         return
 
+    def test_access_ZS_allowed(self):
+        """access to network ZS_2007 for any email account."""
+
+        msg = 'Access to ZS_2007 from any email account should be allowed.'
+        if self.host.endswith('/'):
+            accmethod = '{}access/?nslc=ZS&email=none@none.com&starttime=2007-01-01&endtime=2007-01-01'.format(self.host)
+        else:
+            raise Exception('Wrong service URL format. A / is expected as last character.')
+
+        req = Request(accmethod)
+        try:
+            u = urlopen(req)
+            buffer = u.read()
+        except HTTPError as e:
+                self.assertTrue(False, '%s (%s)' % (msg, e))
+                return
+
+        self.assertTrue(True, msg)
+        return
+
+    def test_access_ZS_GFZ_allowed(self):
+        """access to network ZS_2017 for any email account."""
+
+        msg = 'Access to ZS_2017 from any email account should be allowed.'
+        if self.host.endswith('/'):
+            accmethod = '{}access/?nslc=ZS&email=none@gfz-potsdam.de&starttime=2017-01-01&endtime=2017-01-01'.format(self.host)
+        else:
+            raise Exception('Wrong service URL format. A / is expected as last character.')
+
+        req = Request(accmethod)
+        try:
+            u = urlopen(req)
+            buffer = u.read()
+        except HTTPError as e:
+                self.assertTrue(False, '%s (%s)' % (msg, e))
+                return
+
+        self.assertTrue(True, msg)
+        return
+
+    def test_access_ZS_denied(self):
+        """access to network ZS for any email account."""
+
+        msg = 'Access to ZS_2017 from any email account should be denied.'
+        if self.host.endswith('/'):
+            accmethod = '{}access/?nslc=ZS&email=none@none.com&starttime=2017-01-01&endtime=2017-01-01'.format(self.host)
+        else:
+            raise Exception('Wrong service URL format. A / is expected as last character.')
+
+        req = Request(accmethod)
+        try:
+            u = urlopen(req)
+            buffer = u.read()
+        except HTTPError as e:
+            if hasattr(e, 'code'):
+                self.assertEqual(e.getcode(), 403, '%s (%s)' % (msg, e.code))
+                return
+
+            self.assertTrue(False, '%s (%s)' % (msg, e))
+            return
+
+        self.assertTrue(True, msg)
+        return
+
 
 # ----------------------------------------------------------------------
 def usage():
