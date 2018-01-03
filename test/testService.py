@@ -269,11 +269,11 @@ class SC3MicroApiTests(unittest.TestCase):
         return
 
     def test_access_ZS_GFZ_allowed(self):
-        """access to network ZS_2017 for any email account."""
+        """access to network ZS_2017 for a GFZ email account."""
 
-        msg = 'Access to ZS_2017 from any email account should be allowed.'
+        msg = 'Access to ZS_2017 from a GFZ email account should be allowed.'
         if self.host.endswith('/'):
-            accmethod = '{}access/?nslc=ZS&email=none@gfz-potsdam.de&starttime=2017-01-01&endtime=2017-01-01'.format(self.host)
+            accmethod = '{}access/?nslc=ZS&email=yuan@gfz-potsdam.de&starttime=2017-01-01&endtime=2017-01-01'.format(self.host)
         else:
             raise Exception('Wrong service URL format. A / is expected as last character.')
 
