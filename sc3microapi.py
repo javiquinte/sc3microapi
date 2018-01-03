@@ -209,7 +209,7 @@ class NetworksAPI(object):
 
     @cherrypy.expose
     def index(self, net=None, outformat='json', restricted=None, archive=None,
-              netclass=None, starttime=None, endtime=None):
+              netclass=None, starttime=None, endtime=None, **kwargs):
         """List available networks in the system.
 
         :param net: Network code
@@ -230,6 +230,15 @@ class NetworksAPI(object):
         :rtype: utf-8 encoded string
         :raises: cherrypy.HTTPError
         """
+
+        if len(kwargs):
+            # Send Error 400
+            messDict = {'code': 0,
+                        'message': 'Unknown parameter "{}".'.format(kwargs.items()[0])}
+            message = json.dumps(messDict)
+            cherrypy.log(message)
+            raise cherrypy.HTTPError(400, message)
+
         cherrypy.response.headers['Content-Type'] = 'application/json'
 
         # Check parameters
