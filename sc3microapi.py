@@ -234,7 +234,7 @@ class NetworksAPI(object):
         if len(kwargs):
             # Send Error 400
             messDict = {'code': 0,
-                        'message': 'Unknown parameter "{}".'.format(kwargs.items()[0])}
+                        'message': 'Unknown parameter(s) "{}".'.format(kwargs.items())}
             message = json.dumps(messDict)
             cherrypy.log(message)
             raise cherrypy.HTTPError(400, message)
