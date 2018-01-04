@@ -12,3 +12,6 @@ host = name.domainname
 user = username
 password = password
 db = seiscomp3
+
+[Service]
+network =

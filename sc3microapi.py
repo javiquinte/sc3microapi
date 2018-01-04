@@ -32,6 +32,7 @@ import io
 import csv
 import json
 import MySQLdb
+from MySQLdb.cursors import DictCursor
 import logging
 import logging.config
 import datetime
@@ -268,9 +269,12 @@ class AccessAPI(object):
 class NetworksAPI(object):
     """Object dispatching methods related to networks."""
 
-    def __init__(self, conn):
+    def __init__(self, conn, extrafields=[]):
         """Constructor of the IngestAPI class."""
         self.conn = conn
+        self.extrafields = extrafields
+        self.netsuppl = configparser.RawConfigParser()
+        self.netsuppl.read('networks.cfg')
         self.log = logging.getLogger('NetworksAPI')
 
     @cherrypy.expose
@@ -389,8 +393,16 @@ class NetworksAPI(object):
 
             self.cursor.execute(query, variables)
 
+            # Complete SC3 data with local data
+            result = []
+            curnet = self.cursor.fetchone()
+            while curnet:
+                for field in self.extrafields:
+                    curnet[field] = self.netsuppl.get(curnet['code'], field, None)
+                result.append(curnet)
+
             if outformat == 'json':
-                return json.dumps(self.cursor.fetchall(), default=datetime.datetime.isoformat).encode('utf-8')
+                return json.dumps(result, default=datetime.datetime.isoformat).encode('utf-8')
             elif outformat == 'text':
                 fout = io.StringIO("")
                 writer = csv.writer(fout, delimiter='|')
@@ -473,7 +485,7 @@ def main():
     password = config.get('mysql', 'password')
     db = config.get('mysql', 'db')
     
-    conn = MySQLdb.connect(host, user, password, db)
+    conn = MySQLdb.connect(host, user, password, db, cursorclass=DictCursor)
     
     server_config = {
         'global': {
