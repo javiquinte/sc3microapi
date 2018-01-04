@@ -367,6 +367,8 @@ class NetworksAPI(object):
         try:
             self.cursor = self.conn.cursor()
             query = 'select code, start, end, netClass, archive, restricted from Network'
+            fields = ['code', 'start', 'end', 'netClass', 'archive', 'restricted']
+            fields.extend(self.extrafields)
 
             whereclause = []
             variables = []
@@ -402,18 +404,23 @@ class NetworksAPI(object):
             # Complete SC3 data with local data
             result = []
             curnet = self.cursor.fetchone()
-            while curnet:
-                for field in self.extrafields:
-                    curnet[field] = self.netsuppl.get(curnet['code'] + '-' + str(curnet['start'].year),
-                                                      field, fallback=None)
-                result.append(curnet)
-                curnet = self.cursor.fetchone()
-
             if outformat == 'json':
+                while curnet:
+                    for field in self.extrafields:
+                        curnet[field] = self.netsuppl.get(curnet['code'] + '-' + str(curnet['start'].year),
+                                                          field, fallback=None)
+                    result.append(curnet)
+                    curnet = self.cursor.fetchone()
+
                 return json.dumps(result, default=datetime.datetime.isoformat).encode('utf-8')
             elif outformat == 'text':
                 fout = io.StringIO("")
                 writer = csv.writer(fout, delimiter='|')
+
+                while curnet:
+                    result.append([curnet[field] for field in fields])
+                    curnet = self.cursor.fetchone()
+
                 writer.writerows(self.cursor.fetchall())
                 fout.seek(0)
                 cherrypy.response.headers['Content-Type'] = 'text/plain'
