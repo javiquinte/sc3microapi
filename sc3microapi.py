@@ -403,7 +403,8 @@ class NetworksAPI(object):
             curnet = self.cursor.fetchone()
             while curnet:
                 for field in self.extrafields:
-                    curnet[field] = self.netsuppl.get(curnet['code'] + '-' + curnet['start'].year, field, fallback=None)
+                    curnet[field] = self.netsuppl.get(curnet['code'] + '-' + str(curnet['start'].year),
+                                                      field, fallback=None)
                 result.append(curnet)
                 curnet = self.cursor.fetchone()
 
