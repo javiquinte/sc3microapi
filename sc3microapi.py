@@ -74,7 +74,7 @@ class AccessAPI(object):
                        'stationCode=%s',
                        'locationCode=%s',
                        'streamCode=%s',
-                       '%s LIKE concat("%", user, "%")']
+                       '%s LIKE concat("%%", user, "%%")']
         variables = [net, sta, loc, cha, email]
 
         if (starttime is not None):
