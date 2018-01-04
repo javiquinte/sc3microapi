@@ -33,12 +33,56 @@ import csv
 import json
 import MySQLdb
 import logging
+import logging.config
 import datetime
 
 try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
+
+# Logging configuration (hardcoded!)
+LOG_CONF = {
+    'version': 1,
+
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        },
+    },
+    'handlers': {
+        'sc3microapilog': {
+            'level':'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'standard',
+            'filename': os.path.join(os.path.expanduser('~'), '.sc3microapi', 'sc3microapi.log'),
+            'maxBytes': 10485760,
+            'backupCount': 20,
+            'encoding': 'utf8'
+        },
+    },
+    'loggers': {
+        'main': {
+            'handlers': ['sc3microapilog'],
+            'level': 'INFO'
+        },
+        'AccessAPI': {
+            'handlers': ['sc3microapilog'],
+            'level': 'INFO' ,
+            'propagate': False
+        },
+        'NetworksAPI': {
+            'handlers': ['sc3microapilog'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'SC3MicroAPI': {
+            'handlers': ['sc3microapilog'],
+            'level': 'INFO',
+            'propagate': False
+        },
+    }
+}
 
 
 def str2date(dStr):
@@ -66,6 +110,7 @@ class AccessAPI(object):
     def __init__(self, conn):
         """Constructor of the AccessAPI class."""
         self.conn = conn
+        self.log = logging.getLogger('AccessAPI')
 
     def __access(self, email, net='', sta='', loc='', cha='', starttime=None, endtime=None):
         # Check network access
@@ -116,7 +161,7 @@ class AccessAPI(object):
             messDict = {'code': 0,
                         'message': 'Wrong formatted NSLC code (%s).' % nslc}
             message = json.dumps(messDict)
-            cherrypy.log(message)
+            self.log.error(message)
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
@@ -128,7 +173,7 @@ class AccessAPI(object):
                 messDict = {'code': 0,
                             'message': 'Error converting the "starttime" parameter (%s).' % starttime}
                 message = json.dumps(messDict)
-                cherrypy.log(message)
+                self.log.error(message)
                 cherrypy.response.headers['Content-Type'] = 'application/json'
                 raise cherrypy.HTTPError(400, message)
 
@@ -140,7 +185,7 @@ class AccessAPI(object):
                 messDict = {'code': 0,
                             'message': 'Error converting the "endtime" parameter (%s).' % endtime}
                 message = json.dumps(messDict)
-                cherrypy.log(message)
+                self.log.error(message)
                 cherrypy.response.headers['Content-Type'] = 'application/json'
                 raise cherrypy.HTTPError(400, message)
 
@@ -171,7 +216,7 @@ class AccessAPI(object):
             messDict = {'code': 0,
                         'message': mess}
             message = json.dumps(messDict)
-            cherrypy.log(message)
+            self.log.error(message)
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
@@ -199,7 +244,7 @@ class AccessAPI(object):
         messDict = {'code': 0,
                     'message': 'Access to {} denied for {}.'.format(nslc, email)}
         message = json.dumps(messDict)
-        cherrypy.log(message)
+        self.log.error(message)
         cherrypy.response.headers['Content-Type'] = 'application/json'
         raise cherrypy.HTTPError(403, message)
 
@@ -212,6 +257,7 @@ class NetworksAPI(object):
     def __init__(self, conn):
         """Constructor of the IngestAPI class."""
         self.conn = conn
+        self.log = logging.getLogger('NetworksAPI')
 
     @cherrypy.expose
     def index(self, net=None, outformat='json', restricted=None, archive=None,
@@ -242,7 +288,7 @@ class NetworksAPI(object):
             messDict = {'code': 0,
                         'message': 'Unknown parameter(s) "{}".'.format(kwargs.items())}
             message = json.dumps(messDict)
-            cherrypy.log(message)
+            self.log.error(message)
             raise cherrypy.HTTPError(400, message)
 
         cherrypy.response.headers['Content-Type'] = 'application/json'
@@ -258,7 +304,7 @@ class NetworksAPI(object):
                 messDict = {'code': 0,
                             'message': 'Restricted does not seem to be 0 or 1.'}
                 message = json.dumps(messDict)
-                cherrypy.log(message)
+                self.log.error(message)
                 raise cherrypy.HTTPError(400, message)
 
         try:
@@ -269,7 +315,7 @@ class NetworksAPI(object):
             messDict = {'code': 0,
                         'message': 'Wrong value in the "format" parameter.'}
             message = json.dumps(messDict)
-            cherrypy.log(message)
+            self.log.error(message)
             raise cherrypy.HTTPError(400, message)
 
         if starttime is not None:
@@ -280,7 +326,7 @@ class NetworksAPI(object):
                 messDict = {'code': 0,
                             'message': 'Error converting the "starttime" parameter (%s).' % starttime}
                 message = json.dumps(messDict)
-                cherrypy.log(message)
+                self.log.error(message)
                 raise cherrypy.HTTPError(400, message)
 
         if endtime is not None:
@@ -291,7 +337,7 @@ class NetworksAPI(object):
                 messDict = {'code': 0,
                             'message': 'Error converting the "endtime" parameter (%s).' % endtime}
                 message = json.dumps(messDict)
-                cherrypy.log(message)
+                self.log.error(message)
                 raise cherrypy.HTTPError(400, message)
 
         try:
@@ -343,7 +389,7 @@ class NetworksAPI(object):
             messDict = {'code': 0,
                         'message': 'Could not query the available networks'}
             message = json.dumps(messDict)
-            cherrypy.log(message)
+            self.log.error(message)
             raise cherrypy.HTTPError(404, message)
 
 
@@ -360,6 +406,7 @@ class SC3MicroApi(object):
         self.conn = conn
         self.network = NetworksAPI(conn)
         self.access = AccessAPI(conn)
+        self.log = logging.getLogger('SC3MicroAPI')
 
     @cherrypy.expose
     def index(self):
@@ -398,9 +445,24 @@ def main():
     config.read(os.path.join(here, 'sc3microapi.cfg'))
     
     # Logging configuration
-    verbo = config.get('Logging', 'verbose') if config.has_option('Logging', 'verbose') else 'INFO'
+    verbo = config.get('Logging', 'main') if config.has_option('Logging', 'main') else 'INFO'
     verboNum = getattr(logging, verbo.upper(), 30)
-    logging.basicConfig(level=verboNum)
+    LOG_CONF['loggers']['main']['level'] = verboNum
+
+    verbo = config.get('Logging', 'ResultFile') if config.has_option('Logging', 'ResultFile') else 'INFO'
+    verboNum = getattr(logging, verbo.upper(), 30)
+    LOG_CONF['loggers']['ResultFile']['level'] = verboNum
+
+    verbo = config.get('Logging', 'DataSelectQuery') if config.has_option('Logging', 'DataSelectQuery') else 'INFO'
+    verboNum = getattr(logging, verbo.upper(), 30)
+    LOG_CONF['loggers']['DataSelectQuery']['level'] = verboNum
+
+    verbo = config.get('Logging', 'Application') if config.has_option('Logging', 'Application') else 'INFO'
+    verboNum = getattr(logging, verbo.upper(), 30)
+    LOG_CONF['loggers']['Application']['level'] = verboNum
+
+    logging.config.dictConfig(LOG_CONF)
+    loclog = logging.getLogger('main')
 
     # Read connection parameters
     host = config.get('mysql', 'host')

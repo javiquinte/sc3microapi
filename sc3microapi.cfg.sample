@@ -1,8 +1,11 @@
-[Service]
+[Logging]
 # Verbosity of the logging system
 # Possible values are:
 # CRITICAL, ERROR, WARNING, INFO, DEBUG
-verbosity = INFO
+main = INFO
+AccessAPI = INFO
+NetworksAPI = INFO
+SC3MicroAPI = INFO
 
 [mysql]
 host = name.domainname
