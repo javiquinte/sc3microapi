@@ -70,19 +70,19 @@ class AccessAPI(object):
     def __access(self, email, net='', sta='', loc='', cha='', starttime=None, endtime=None):
         # Check network access
         self.cursor = self.conn.cursor()
-        whereclause = ['networkCode="%s"',
-                       'stationCode="%s"',
-                       'locationCode="%s"',
-                       'streamCode="%s"',
-                       '"%s" LIKE concat("%", user, "%")']
+        whereclause = ['networkCode=%s',
+                       'stationCode=%s',
+                       'locationCode=%s',
+                       'streamCode=%s',
+                       '%s LIKE concat("%", user, "%")']
         variables = [net, sta, loc, cha, email]
 
         if (starttime is not None):
-            whereclause.append('start<="%s"')
+            whereclause.append('start<=%s')
             variables.append(starttime)
 
         if (endtime is not None):
-            whereclause.append('(end>="%s" or end is NULL)')
+            whereclause.append('(end>=%s or end is NULL)')
             variables.append(endtime)
 
         query = 'select count(*) from Access where ' + ' and '.join(whereclause)
@@ -145,15 +145,15 @@ class AccessAPI(object):
                 raise cherrypy.HTTPError(400, message)
 
         # Check if network is restricted
-        whereclause = ['code="%s"']
+        whereclause = ['code=%s']
         variables = [nslc2[0]]
 
         if starttime is not None:
-            whereclause.append('start<="%s"')
+            whereclause.append('start<=%s')
             variables.append(starttime)
 
         if endtime is not None:
-            whereclause.append('(end>="%s" or end is NULL)')
+            whereclause.append('(end>=%s or end is NULL)')
             variables.append(endtime)
 
         self.cursor = self.conn.cursor()
@@ -301,7 +301,7 @@ class NetworksAPI(object):
             whereclause = []
             variables = []
             if net is not None:
-                whereclause.append('code="%s"')
+                whereclause.append('code=%s')
                 variables.append(net)
 
             if restricted is not None:
@@ -309,19 +309,19 @@ class NetworksAPI(object):
                 variables.append(restricted)
 
             if archive is not None:
-                whereclause.append('archive="%s"')
+                whereclause.append('archive=%s')
                 variables.append(archive)
 
             if netclass is not None:
-                whereclause.append('netClass="%s"')
+                whereclause.append('netClass=%s')
                 variables.append(netclass)
 
             if starttime is not None:
-                whereclause.append('start>="%s"')
+                whereclause.append('start>=%s')
                 variables.append(starttime)
 
             if endtime is not None:
-                whereclause.append('end<="%s"')
+                whereclause.append('end<=%s')
                 variables.append(endtime)
 
             if len(whereclause):
