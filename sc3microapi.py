@@ -60,6 +60,15 @@ LOG_CONF = {
             'backupCount': 20,
             'encoding': 'utf8'
         },
+        'cherrypyAccess': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'standard',
+            'filename': os.path.join(os.path.expanduser('~'), '.sc3microapi', 'access.log'),
+            'maxBytes': 10485760,
+            'backupCount': 20,
+            'encoding': 'utf8'
+        },
     },
     'loggers': {
         'main': {
@@ -78,6 +87,11 @@ LOG_CONF = {
         },
         'SC3MicroAPI': {
             'handlers': ['sc3microapilog'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'cherrypy.access': {
+            'handlers': ['cherrypyAccess'],
             'level': 'INFO',
             'propagate': False
         },
