@@ -445,21 +445,10 @@ def main():
     config.read(os.path.join(here, 'sc3microapi.cfg'))
     
     # Logging configuration
-    verbo = config.get('Logging', 'main') if config.has_option('Logging', 'main') else 'INFO'
-    verboNum = getattr(logging, verbo.upper(), 30)
-    LOG_CONF['loggers']['main']['level'] = verboNum
-
-    verbo = config.get('Logging', 'ResultFile') if config.has_option('Logging', 'ResultFile') else 'INFO'
-    verboNum = getattr(logging, verbo.upper(), 30)
-    LOG_CONF['loggers']['ResultFile']['level'] = verboNum
-
-    verbo = config.get('Logging', 'DataSelectQuery') if config.has_option('Logging', 'DataSelectQuery') else 'INFO'
-    verboNum = getattr(logging, verbo.upper(), 30)
-    LOG_CONF['loggers']['DataSelectQuery']['level'] = verboNum
-
-    verbo = config.get('Logging', 'Application') if config.has_option('Logging', 'Application') else 'INFO'
-    verboNum = getattr(logging, verbo.upper(), 30)
-    LOG_CONF['loggers']['Application']['level'] = verboNum
+    for modname in ['main', 'NetworksAPI', 'AccessAPI', 'SC3MicroAPI']:
+        verbo = config.get('Logging', modname) if config.has_option('Logging', modname) else 'INFO'
+        verboNum = getattr(logging, verbo.upper(), 30)
+        LOG_CONF['loggers'][modname]['level'] = verboNum
 
     logging.config.dictConfig(LOG_CONF)
     loclog = logging.getLogger('main')
