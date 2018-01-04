@@ -56,7 +56,7 @@ class SC3MicroApiTests(unittest.TestCase):
 
     def test_wrong_format(self):
         """Wrong format option."""
-        req = Request('%s/network/?format=WRONGFORMAT' % self.host)
+        req = Request('%s/network/?outformat=WRONGFORMAT' % self.host)
         msg = 'When a wrong format is specified an error code 400 is expected!'
         try:
             u = urlopen(req)
