@@ -70,26 +70,29 @@ class AccessAPI(object):
     def __access(self, email, net='', sta='', loc='', cha='', starttime=None, endtime=None):
         # Check network access
         self.cursor = self.conn.cursor()
-        whereclause = ['networkCode="{}"'.format(net),
-                       'stationCode="{}"'.format(sta),
-                       'locationCode="{}"'.format(loc),
-                       'streamCode="{}"'.format(cha),
-                       '"{}" LIKE concat("%", user, "%")'.format(email)]
+        whereclause = ['networkCode="%s"',
+                       'stationCode="%s"',
+                       'locationCode="%s"',
+                       'streamCode="%s"',
+                       '"%s" LIKE concat("%", user, "%")']
+        variables = [net, sta, loc, cha, email]
 
         if (starttime is not None):
-            whereclause.append('start<="{}"'.format(starttime))
+            whereclause.append('start<="%s"')
+            variables.append(starttime)
 
         if (endtime is not None):
-            whereclause.append('(end>="{}" or end is NULL)'.format(endtime))
+            whereclause.append('(end>="%s" or end is NULL)')
+            variables.append(endtime)
 
         query = 'select count(*) from Access where ' + ' and '.join(whereclause)
-        self.cursor.execute(query)
+        self.cursor.execute(query, variables)
         result = self.cursor.fetchone()
 
         if (result is not None):
             return result[0]
 
-        raise Exception('No result querying the DB ({})'.format(query))
+        raise Exception('No result querying the DB ({})'.format(query % variables))
 
     @cherrypy.expose
     def index(self, nslc, email, starttime=None, endtime=None):
@@ -142,19 +145,22 @@ class AccessAPI(object):
                 raise cherrypy.HTTPError(400, message)
 
         # Check if network is restricted
-        whereclause = ['code="%s"' % nslc2[0]]
+        whereclause = ['code="%s"']
+        variables = [nslc2[0]]
 
         if starttime is not None:
-            whereclause.append('start<="%s"' % starttime)
+            whereclause.append('start<="%s"')
+            variables.append(starttime)
 
         if endtime is not None:
-            whereclause.append('(end>="%s" or end is NULL)' % endtime)
+            whereclause.append('(end>="%s" or end is NULL)')
+            variables.append(endtime)
 
         self.cursor = self.conn.cursor()
         query = 'select distinct restricted from Network where '
         query = query + ' and '.join(whereclause)
 
-        self.cursor.execute(query)
+        self.cursor.execute(query, variables)
         result = self.cursor.fetchall()
         if len(result) != 1:
             if len(result):
@@ -293,28 +299,35 @@ class NetworksAPI(object):
             query = 'select code, start, end, netClass, archive, restricted from Network'
 
             whereclause = []
+            variables = []
             if net is not None:
-                whereclause.append('code="%s"' % net)
+                whereclause.append('code="%s"')
+                variables.append(net)
 
             if restricted is not None:
-                whereclause.append('restricted=%d' % restricted)
+                whereclause.append('restricted=%d')
+                variables.append(restricted)
 
             if archive is not None:
-                whereclause.append('archive="%s"' % archive)
+                whereclause.append('archive="%s"')
+                variables.append(archive)
 
             if netclass is not None:
-                whereclause.append('netClass="%s"' % netclass)
+                whereclause.append('netClass="%s"')
+                variables.append(netclass)
 
             if starttime is not None:
-                whereclause.append('start>="%s"' % starttime)
+                whereclause.append('start>="%s"')
+                variables.append(starttime)
 
             if endtime is not None:
-                whereclause.append('end<="%s"' % endtime)
+                whereclause.append('end<="%s"')
+                variables.append(endtime)
 
             if len(whereclause):
                 query = query + ' where ' + ' and '.join(whereclause)
 
-            self.cursor.execute(query)
+            self.cursor.execute(query, variables)
 
             if outformat == 'json':
                 return json.dumps(self.cursor.fetchall(), default=datetime.datetime.isoformat).encode('utf-8')
