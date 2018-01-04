@@ -278,7 +278,8 @@ class NetworksAPI(object):
         cfgfile = configparser.RawConfigParser()
         cfgfile.read('sc3microapi.cfg')
 
-        self.extrafields = cfgfile.get('Service', 'network', fallback='').split(',')
+        extrafields = cfgfile.get('Service', 'network', fallback='')
+        self.extrafields = extrafields.split(',') if len(extrafields) else []
         self.netsuppl = configparser.RawConfigParser()
         self.netsuppl.read('networks.cfg')
 
