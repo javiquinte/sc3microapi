@@ -276,7 +276,7 @@ class NetworksAPI(object):
 
         # Get extra fields from the cfg file
         cfgfile = configparser.RawConfigParser()
-        cfgfile.read('sc2microapi.cfg')
+        cfgfile.read('sc3microapi.cfg')
 
         self.extrafields = cfgfile.get('Service', 'network', fallback='').split(',')
         self.netsuppl = configparser.RawConfigParser()
@@ -403,7 +403,7 @@ class NetworksAPI(object):
             curnet = self.cursor.fetchone()
             while curnet:
                 for field in self.extrafields:
-                    curnet[field] = self.netsuppl.get(curnet['code'], field, None)
+                    curnet[field] = self.netsuppl.get(curnet['code'] + '-' + curnet['start'].year, field, fallback=None)
                 result.append(curnet)
                 curnet = self.cursor.fetchone()
 
