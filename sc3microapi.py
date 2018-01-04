@@ -269,13 +269,18 @@ class AccessAPI(object):
 class NetworksAPI(object):
     """Object dispatching methods related to networks."""
 
-    def __init__(self, conn, extrafields=[]):
+    def __init__(self, conn):
         """Constructor of the IngestAPI class."""
         self.conn = conn
-        self.extrafields = extrafields
+        self.log = logging.getLogger('NetworksAPI')
+
+        # Get extra fields from the cfg file
+        cfgfile = configparser.RawConfigParser()
+        cfgfile.read('sc2microapi.cfg')
+
+        self.extrafields = cfgfile.get('Service', 'network', fallback='').split(',')
         self.netsuppl = configparser.RawConfigParser()
         self.netsuppl.read('networks.cfg')
-        self.log = logging.getLogger('NetworksAPI')
 
     @cherrypy.expose
     def index(self, net=None, outformat='json', restricted=None, archive=None,
