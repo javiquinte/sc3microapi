@@ -400,6 +400,7 @@ class NetworksAPI(object):
                 for field in self.extrafields:
                     curnet[field] = self.netsuppl.get(curnet['code'], field, None)
                 result.append(curnet)
+                curnet = self.cursor.fetchone()
 
             if outformat == 'json':
                 return json.dumps(result, default=datetime.datetime.isoformat).encode('utf-8')
