@@ -415,13 +415,17 @@ class NetworksAPI(object):
                 return json.dumps(result, default=datetime.datetime.isoformat).encode('utf-8')
             elif outformat == 'text':
                 fout = io.StringIO("")
-                writer = csv.writer(fout, delimiter='|')
+                writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
+                writer.writeheader()
 
                 while curnet:
-                    result.append([curnet[field] for field in fields])
+                    for exfield in self.extrafields:
+                        curnet[exfield] = self.netsuppl.get(curnet['code'] + '-' + str(curnet['start'].year),
+                                                            exfield, fallback=None)
+                    result.append(curnet)
                     curnet = self.cursor.fetchone()
 
-                writer.writerows(self.cursor.fetchall())
+                writer.writerows(result)
                 fout.seek(0)
                 cherrypy.response.headers['Content-Type'] = 'text/plain'
                 return fout.read().encode('utf-8')
