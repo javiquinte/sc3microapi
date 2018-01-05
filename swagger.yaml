@@ -1,0 +1,170 @@
+openapi: 3.0.0
+info:
+  version: 0.1a1
+  title: sc3MicroAPI
+  description: API specification for the WS retrieving management data from SeisComP3
+  license:
+    name: GPLv3
+    url: 'https://www.gnu.org/licenses/gpl-3.0.html'
+  contact:
+    name: Javier Quinteros
+    url: >-
+      http://www.gfz-potsdam.de/en/section/seismology/staff/profil/javier-quinteros/
+    email: javier@gfz-potsdam.de
+servers:
+  - url: 'http://localhost:7000/sc3microapi'
+    description: sc3MicroAPI running locally
+paths:
+  /:
+    get:
+      summary: Get a help page with a minimum documentation of the service.
+      description: >-
+        Returns a help page in HTML format with a minimum description on how the
+        service can be used and how to configure it.
+      responses:
+        '200':
+          description: Minimum service documentation.
+          content:
+            text/html:
+              schema:
+                type: string
+  /version:
+    get:
+      summary: Get version of the code
+      description: Returns a string specifying the version.
+      responses:
+        '200':
+          description: Version of the code
+          content:
+            text/plain:
+              schema:
+                type: string
+  /network:
+    get:
+      summary: Get a list of networks and its properties
+      description: >-
+        Returns a list of networks including all its attributes and filtered
+        based on the parameters sent.
+      parameters:
+        - name: net
+          in: query
+          description: Network code
+          required: false
+          schema:
+            type: string
+        - name: starttime
+          in: query
+          description: Start time of the time window
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: endtime
+          in: query
+          description: End time of the time window
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: outformat
+          in: query
+          description: Format of the response
+          required: false
+          schema:
+            type: string
+            default: json
+            enum:
+              - json
+              - text
+        - name: restricted
+          in: query
+          description: Spicify whether the network is restricted or not.
+          required: false
+          schema:
+            type: number
+            format: int
+            minimum: 0
+            maximum: 1
+        - name: archive
+          in: query
+          description: Acronym of the institution where data is archived.
+          required: false
+          schema:
+            type: string
+        - name: netclass
+          in: query
+          description: Type of network (temporary or permanent).
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/Networks'
+        '204':
+          description: No data available with the specified parameters.
+        '400':
+          description: >-
+            Bad request due to improper specification, unrecognized parameter,
+            parameter value out of range, etc.
+          content:
+            application/json:
+              schema:
+                type: string
+        '404':
+          description: Unknown error while querying the available networks.
+        default:
+          description: Unexpected error
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/responses/Standard4XXErrorResponse'
+components:
+  schemas:
+    Network:
+      description: Seismic network.
+      type: object
+      properties:
+        code:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        netclass:
+          type: string
+        archive:
+          type: string
+        restricted:
+          type: integer
+  responses:
+    Networks:
+      description: List of networks filtered based on the parameters.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#components/schemas/Network'
+        text/plain:
+          schema:
+            type: string
+          examples:
+            plainnetwork:
+              value: >-
+                code|start|end|netClass|archive|restricted|PI GE|1993-01-01
+                00:00:00||p|GFZ|0|geofon@gfz-potsdam.de
+    Standard4XXErrorResponse:
+      description: Bad Request.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                code:
+                  type: integer
+                message:
+                  type: string
