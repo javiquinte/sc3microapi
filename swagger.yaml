@@ -99,6 +99,7 @@ paths:
             type: string
       responses:
         '200':
+          description: List of networks filtered based on parameters.
           $ref: '#/components/responses/Networks'
         '204':
           description: No data available with the specified parameters.
@@ -109,13 +110,64 @@ paths:
           content:
             application/json:
               schema:
-                type: string
+                $ref: '#/components/responses/Standard4XXErrorResponse'
         '404':
           description: Unknown error while querying the available networks.
-        default:
-          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard4XXErrorResponse'
+  /access:
+    get:
+      summary: Check if a particular user has access to data
+      description: Check if a user has access granted to certain networks/station/channel.
+      parameters:
+        - name: nslc
+          in: query
+          description: Network.Station.Location.Channel code
+          required: true
+          schema:
+            type: string
+        - name: email
+          in: query
+          description: Email account of the user
+          required: true
+          schema:
+            type: string
+            format: email
+        - name: starttime
+          in: query
+          description: Start time of the time window
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: endtime
+          in: query
+          description: End time of the time window
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Access to data is allowed. Response will be empty.
           content:
             text/plain:
+              schema:
+                format: string
+        '400':
+          description: >-
+            Bad request due to improper specification, unrecognized parameter,
+            parameter value out of range, etc.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard4XXErrorResponse'
+        '403':
+          description: Unknown error while querying the available networks.
+          content:
+            application/json:
               schema:
                 $ref: '#/components/responses/Standard4XXErrorResponse'
 components:
