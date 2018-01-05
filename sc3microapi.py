@@ -145,12 +145,13 @@ class AccessAPI(object):
             whereclause.append('(end>=%s or end is NULL)')
             variables.append(endtime)
 
-        query = 'select count(*) from Access where ' + ' and '.join(whereclause)
+        query = 'select count(*) as howmany from Access where ' + ' and '.join(whereclause)
         self.cursor.execute(query, variables)
         result = self.cursor.fetchone()
 
         if (result is not None):
-            return result[0]
+            # FIXME result is a dictionary!
+            return result['howmany']
 
         raise Exception('No result querying the DB ({})'.format(query % variables))
 
@@ -235,12 +236,12 @@ class AccessAPI(object):
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
-        if (result[0] is not None) and (result[0][0] == 0):
+        if (result[0] is not None) and (result[0]['restricted'] == 0):
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
         # Check network access
-        if self.__access(email, net=nslc2[0], starttime=starttime, endtime=endtime) :
+        if self.__access(email, net=nslc2[0], starttime=starttime, endtime=endtime):
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
@@ -251,7 +252,7 @@ class AccessAPI(object):
 
         # Check channel access
         if len(nslc2[3]) and self.__access(email, net=nslc2[0], sta=nslc2[1], loc=nslc2[2], cha=nslc2[3],
-                         starttime=starttime, endtime=endtime) :
+                         starttime=starttime, endtime=endtime):
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
