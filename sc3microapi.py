@@ -150,7 +150,6 @@ class AccessAPI(object):
         result = self.cursor.fetchone()
 
         if (result is not None):
-            # FIXME result is a dictionary!
             return result['howmany']
 
         raise Exception('No result querying the DB ({})'.format(query % variables))
