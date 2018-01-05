@@ -404,27 +404,19 @@ class NetworksAPI(object):
             # Complete SC3 data with local data
             result = []
             curnet = self.cursor.fetchone()
-            if outformat == 'json':
-                while curnet:
-                    for field in self.extrafields:
-                        curnet[field] = self.netsuppl.get(curnet['code'] + '-' + str(curnet['start'].year),
-                                                          field, fallback=None)
-                    result.append(curnet)
-                    curnet = self.cursor.fetchone()
+            while curnet:
+                for field in self.extrafields:
+                    curnet[field] = self.netsuppl.get(curnet['code'] + '-' + str(curnet['start'].year),
+                                                      field, fallback=None)
+                result.append(curnet)
+                curnet = self.cursor.fetchone()
 
+            if outformat == 'json':
                 return json.dumps(result, default=datetime.datetime.isoformat).encode('utf-8')
             elif outformat == 'text':
                 fout = io.StringIO("")
                 writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
                 writer.writeheader()
-
-                while curnet:
-                    for exfield in self.extrafields:
-                        curnet[exfield] = self.netsuppl.get(curnet['code'] + '-' + str(curnet['start'].year),
-                                                            exfield, fallback=None)
-                    result.append(curnet)
-                    curnet = self.cursor.fetchone()
-
                 writer.writerows(result)
                 fout.seek(0)
                 cherrypy.response.headers['Content-Type'] = 'text/plain'
