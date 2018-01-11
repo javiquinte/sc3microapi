@@ -337,7 +337,7 @@ class NetworksAPI(object):
         except:
             # Send Error 400
             messDict = {'code': 0,
-                        'message': 'Wrong value in the "format" parameter.'}
+                        'message': 'Wrong value in the "outformat" parameter.'}
             message = json.dumps(messDict)
             self.log.error(message)
             raise cherrypy.HTTPError(400, message)
@@ -377,7 +377,7 @@ class NetworksAPI(object):
                 variables.append(net)
 
             if restricted is not None:
-                whereclause.append('restricted=%d')
+                whereclause.append('restricted=%s')
                 variables.append(restricted)
 
             if archive is not None:
