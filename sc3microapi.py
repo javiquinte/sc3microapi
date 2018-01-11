@@ -27,7 +27,7 @@
 
 
 import cherrypy
-from cherrypy.process import import plugins
+from cherrypy.process import plugins
 import os
 import io
 import csv
