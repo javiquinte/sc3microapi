@@ -509,9 +509,25 @@ def main():
     # Update the global CherryPy configuration
     cherrypy.config.update(server_config)
     cherrypy.tree.mount(SC3MicroApi(conn), '/sc3microapi')
-    cherrypy.engine.signals.subscribe()
-    cherrypy.engine.start()
-    cherrypy.engine.block()
+
+    plugins.Daemonizer(cherrypy.engine).subscribe()
+    if hasattr(cherrypy.engine, 'signal_handler'):
+        cherrypy.engine.signal_handler.subscribe()
+    if hasattr(cherrypy.engine, 'console_control_handler'):
+        cherrypy.engine.console_control_handler.subscribe()
+
+    # Always start the engine; this will start all other services
+    try:
+        cherrypy.engine.start()
+    except Exception:
+        # Assume the error has been logged already via bus.log.
+        raise
+    else:
+        cherrypy.engine.block()
+
+    # cherrypy.engine.signals.subscribe()
+    # cherrypy.engine.start()
+    # cherrypy.engine.block()
 
 if __name__ == "__main__":
     main()
