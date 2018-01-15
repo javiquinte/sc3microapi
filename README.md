@@ -1,6 +1,8 @@
 # sc3microapi
 Micro web service for SeisComP3 systems
 
+Full OpenAPI specification can be seen [![here](https://generator.swagger.io/?url=https://raw.githubusercontent.com/javiquinte/sc3microapi/master/swagger.yaml)].
+
 In order to integrate systems running SeisComP3 with other systems or tools
 is important to expose at least some basic information related to the system
 in operation. For instance, which networks and stations are present in the
