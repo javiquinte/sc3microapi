@@ -365,70 +365,70 @@ class NetworksAPI(object):
                 self.log.error(message)
                 raise cherrypy.HTTPError(400, message)
 
-        try:
-            self.cursor = self.conn.cursor()
-            query = 'select code, start, end, netClass, archive, restricted from Network'
-            fields = ['code', 'start', 'end', 'netClass', 'archive', 'restricted']
-            fields.extend(self.extrafields)
+        # try:
+        self.cursor = self.conn.cursor()
+        query = 'select code, start, end, netClass, archive, restricted from Network'
+        fields = ['code', 'start', 'end', 'netClass', 'archive', 'restricted']
+        fields.extend(self.extrafields)
 
-            whereclause = []
-            variables = []
-            if net is not None:
-                whereclause.append('code=%s')
-                variables.append(net)
+        whereclause = []
+        variables = []
+        if net is not None:
+            whereclause.append('code=%s')
+            variables.append(net)
 
-            if restricted is not None:
-                whereclause.append('restricted=%s')
-                variables.append(restricted)
+        if restricted is not None:
+            whereclause.append('restricted=%s')
+            variables.append(restricted)
 
-            if archive is not None:
-                whereclause.append('archive=%s')
-                variables.append(archive)
+        if archive is not None:
+            whereclause.append('archive=%s')
+            variables.append(archive)
 
-            if netclass is not None:
-                whereclause.append('netClass=%s')
-                variables.append(netclass)
+        if netclass is not None:
+            whereclause.append('netClass=%s')
+            variables.append(netclass)
 
-            if starttime is not None:
-                whereclause.append('start>=%s')
-                variables.append(starttime)
+        if starttime is not None:
+            whereclause.append('start>=%s')
+            variables.append(starttime)
 
-            if endtime is not None:
-                whereclause.append('end<=%s')
-                variables.append(endtime)
+        if endtime is not None:
+            whereclause.append('end<=%s')
+            variables.append(endtime)
 
-            if len(whereclause):
-                query = query + ' where ' + ' and '.join(whereclause)
+        if len(whereclause):
+            query = query + ' where ' + ' and '.join(whereclause)
 
-            self.cursor.execute(query, variables)
+        self.cursor.execute(query, variables)
 
-            # Complete SC3 data with local data
-            result = []
+        # Complete SC3 data with local data
+        result = []
+        curnet = self.cursor.fetchone()
+        while curnet:
+            for field in self.extrafields:
+                curnet[field] = self.netsuppl.get(curnet['code'] + '-' + str(curnet['start'].year),
+                                                  field, fallback=None)
+            result.append(curnet)
             curnet = self.cursor.fetchone()
-            while curnet:
-                for field in self.extrafields:
-                    curnet[field] = self.netsuppl.get(curnet['code'] + '-' + str(curnet['start'].year),
-                                                      field, fallback=None)
-                result.append(curnet)
-                curnet = self.cursor.fetchone()
 
-            if outformat == 'json':
-                return json.dumps(result, default=datetime.datetime.isoformat).encode('utf-8')
-            elif outformat == 'text':
-                fout = io.StringIO("")
-                writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
-                writer.writeheader()
-                writer.writerows(result)
-                fout.seek(0)
-                cherrypy.response.headers['Content-Type'] = 'text/plain'
-                return fout.read().encode('utf-8')
-        except:
-            # Send Error 404
-            messDict = {'code': 0,
-                        'message': 'Could not query the available networks'}
-            message = json.dumps(messDict)
-            self.log.error(message)
-            raise cherrypy.HTTPError(404, message)
+        if outformat == 'json':
+            return json.dumps(result, default=datetime.datetime.isoformat).encode('utf-8')
+        elif outformat == 'text':
+            fout = io.StringIO("")
+            writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
+            writer.writeheader()
+            writer.writerows(result)
+            fout.seek(0)
+            cherrypy.response.headers['Content-Type'] = 'text/plain'
+            return fout.read().encode('utf-8')
+        # except:
+        #     # Send Error 404
+        #     messDict = {'code': 0,
+        #                 'message': 'Could not query the available networks'}
+        #     message = json.dumps(messDict)
+        #     self.log.error(message)
+        #     raise cherrypy.HTTPError(404, message)
 
 
 class SC3MicroApi(object):
