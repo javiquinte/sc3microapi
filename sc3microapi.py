@@ -37,11 +37,7 @@ from MySQLdb.cursors import DictCursor
 import logging
 import logging.config
 import datetime
-
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
+import configparser
 
 # Logging configuration (hardcoded!)
 LOG_CONF = {
@@ -54,7 +50,7 @@ LOG_CONF = {
     },
     'handlers': {
         'sc3microapilog': {
-            'level':'DEBUG',
+            'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'standard',
             'filename': os.path.join(os.path.expanduser('~'), '.sc3microapi', 'sc3microapi.log'),
@@ -79,7 +75,7 @@ LOG_CONF = {
         },
         'AccessAPI': {
             'handlers': ['sc3microapilog'],
-            'level': 'INFO' ,
+            'level': 'INFO',
             'propagate': False
         },
         'NetworksAPI': {
@@ -101,31 +97,53 @@ LOG_CONF = {
 }
 
 
-def str2date(dStr):
+def str2date(dateiso):
     """Transform a string to a datetime.
 
-    :param dStr: A datetime in ISO format.
-    :type dStr: string
+    :param dateiso: A datetime in ISO format.
+    :type dateiso: string
     :return: A datetime represented the converted input.
     :rtype: datetime
     """
     # In case of empty string
-    if not len(dStr):
+    if not len(dateiso):
         return None
 
-    dateParts = dStr.replace('-', ' ').replace('T', ' ')
-    dateParts = dateParts.replace(':', ' ').replace('.', ' ')
-    dateParts = dateParts.replace('Z', '').split()
-    return datetime.datetime(*map(int, dateParts))
+    try:
+        dateparts = dateiso.replace('-', ' ').replace('T', ' ')
+        dateparts = dateparts.replace(':', ' ').replace('.', ' ')
+        dateparts = dateparts.replace('Z', '').split()
+        result = datetime.datetime(*map(int, dateparts))
+    except Exception:
+        raise ValueError('{} could not be parsed as datetime.'.format(dateiso))
+
+    return result
+
+
+class SC3dbconnection(object):
+    def __init__(self, host, user, password, db='seiscomp3'):
+        """Constructor of the AccessAPI class."""
+        self.host = host
+        self.user = user
+        self.password = password
+        self.db = db
+        # Save connection
+        self.conn = MySQLdb.connect(host, user, password, db, cursorclass=DictCursor)
+        self.log = logging.getLogger('SC3dbconnection')
+
+    def cursor(self):
+        return self.conn.cursor()
 
 
 @cherrypy.expose
 class AccessAPI(object):
     """Object dispatching methods related to access to streams."""
 
-    def __init__(self, conn):
+    def __init__(self, host, user, password, db):
         """Constructor of the AccessAPI class."""
-        self.conn = conn
+        # Save connection
+        self.conn = SC3dbconnection(host, user, password, db)
+        self.cursor = self.conn.cursor()
         self.log = logging.getLogger('AccessAPI')
 
     def __access(self, email, net='', sta='', loc='', cha='', starttime=None, endtime=None):
@@ -138,11 +156,11 @@ class AccessAPI(object):
                        '%s LIKE concat("%%", user, "%%")']
         variables = [net, sta, loc, cha, email]
 
-        if (starttime is not None):
+        if starttime is not None:
             whereclause.append('start<=%s')
             variables.append(starttime)
 
-        if (endtime is not None):
+        if endtime is not None:
             whereclause.append('(end>=%s or end is NULL)')
             variables.append(endtime)
 
@@ -150,7 +168,7 @@ class AccessAPI(object):
         self.cursor.execute(query, variables)
         result = self.cursor.fetchone()
 
-        if (result is not None):
+        if result is not None:
             return result['howmany']
 
         raise Exception('No result querying the DB ({})'.format(query % variables))
@@ -159,9 +177,18 @@ class AccessAPI(object):
     def index(self, nslc, email, starttime=None, endtime=None):
         """Check if the user has access to a stream.
 
+        The output should be empty, because the error code is the real output.
+        200 to indicate that a user has access and 403 when it does not.
+
         :param nslc: Network.Station.Location.Channel
-        :param type: str
-        :returns: Data related to the available networks.
+        :type nslc: str
+        :param email: Email address from the user
+        :type email: str
+        :param starttime: Start time of the time window to access
+        :type starttime: str
+        :param endtime: End time of the time window to access
+        :type endtime: str
+        :returns: Empty string
         :rtype: utf-8 encoded string
         :raises: cherrypy.HTTPError
         """
@@ -172,35 +199,35 @@ class AccessAPI(object):
             nslc2 = [auxnslc[pos] if len(auxnslc) > pos else '' for pos in range(4)]
             if len(nslc2) != 4:
                 raise Exception
-        except:
+        except Exception:
             # Send Error 400
-            messDict = {'code': 0,
+            messdict = {'code': 0,
                         'message': 'Wrong formatted NSLC code (%s).' % nslc}
-            message = json.dumps(messDict)
+            message = json.dumps(messdict)
             self.log.error(message)
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
 
         if starttime is not None:
             try:
-                startt = str2date(starttime)
-            except:
+                str2date(starttime)
+            except Exception:
                 # Send Error 400
-                messDict = {'code': 0,
+                messdict = {'code': 0,
                             'message': 'Error converting the "starttime" parameter (%s).' % starttime}
-                message = json.dumps(messDict)
+                message = json.dumps(messdict)
                 self.log.error(message)
                 cherrypy.response.headers['Content-Type'] = 'application/json'
                 raise cherrypy.HTTPError(400, message)
 
         if endtime is not None:
             try:
-                endt = str2date(endtime)
-            except:
+                str2date(endtime)
+            except Exception:
                 # Send Error 400
-                messDict = {'code': 0,
+                messdict = {'code': 0,
                             'message': 'Error converting the "endtime" parameter (%s).' % endtime}
-                message = json.dumps(messDict)
+                message = json.dumps(messdict)
                 self.log.error(message)
                 cherrypy.response.headers['Content-Type'] = 'application/json'
                 raise cherrypy.HTTPError(400, message)
@@ -229,9 +256,9 @@ class AccessAPI(object):
             else:
                 mess = 'Network not found!'
             # Send Error 400
-            messDict = {'code': 0,
+            messdict = {'code': 0,
                         'message': mess}
-            message = json.dumps(messDict)
+            message = json.dumps(messdict)
             self.log.error(message)
             cherrypy.response.headers['Content-Type'] = 'application/json'
             raise cherrypy.HTTPError(400, message)
@@ -252,14 +279,14 @@ class AccessAPI(object):
 
         # Check channel access
         if len(nslc2[3]) and self.__access(email, net=nslc2[0], sta=nslc2[1], loc=nslc2[2], cha=nslc2[3],
-                         starttime=starttime, endtime=endtime):
+                                           starttime=starttime, endtime=endtime):
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return ''.encode('utf-8')
 
         # Send Error 403
-        messDict = {'code': 0,
+        messdict = {'code': 0,
                     'message': 'Access to {} denied for {}.'.format(nslc, email)}
-        message = json.dumps(messDict)
+        message = json.dumps(messdict)
         self.log.error(message)
         cherrypy.response.headers['Content-Type'] = 'application/json'
         raise cherrypy.HTTPError(403, message)
@@ -270,9 +297,11 @@ class AccessAPI(object):
 class NetworksAPI(object):
     """Object dispatching methods related to networks."""
 
-    def __init__(self, conn):
-        """Constructor of the IngestAPI class."""
-        self.conn = conn
+    def __init__(self, host, user, password, db):
+        """Constructor of the NetworksAPI class."""
+        # Save connection
+        self.conn = SC3dbconnection(host, user, password, db)
+        self.cursor = self.conn.cursor()
         self.log = logging.getLogger('NetworksAPI')
 
         # Get extra fields from the cfg file
@@ -310,9 +339,9 @@ class NetworksAPI(object):
 
         if len(kwargs):
             # Send Error 400
-            messDict = {'code': 0,
+            messdict = {'code': 0,
                         'message': 'Unknown parameter(s) "{}".'.format(kwargs.items())}
-            message = json.dumps(messDict)
+            message = json.dumps(messdict)
             self.log.error(message)
             raise cherrypy.HTTPError(400, message)
 
@@ -324,49 +353,48 @@ class NetworksAPI(object):
                 restricted = int(restricted)
                 if restricted not in [0, 1]:
                     raise Exception
-            except:
+            except Exception:
                 # Send Error 400
-                messDict = {'code': 0,
+                messdict = {'code': 0,
                             'message': 'Restricted does not seem to be 0 or 1.'}
-                message = json.dumps(messDict)
+                message = json.dumps(messdict)
                 self.log.error(message)
                 raise cherrypy.HTTPError(400, message)
 
         try:
             if outformat not in ['json', 'text']:
                 raise Exception
-        except:
+        except Exception:
             # Send Error 400
-            messDict = {'code': 0,
+            messdict = {'code': 0,
                         'message': 'Wrong value in the "outformat" parameter.'}
-            message = json.dumps(messDict)
+            message = json.dumps(messdict)
             self.log.error(message)
             raise cherrypy.HTTPError(400, message)
 
         if starttime is not None:
             try:
-                startt = str2date(starttime)
-            except:
+                str2date(starttime)
+            except Exception:
                 # Send Error 400
-                messDict = {'code': 0,
+                messdict = {'code': 0,
                             'message': 'Error converting the "starttime" parameter (%s).' % starttime}
-                message = json.dumps(messDict)
+                message = json.dumps(messdict)
                 self.log.error(message)
                 raise cherrypy.HTTPError(400, message)
 
         if endtime is not None:
             try:
-                endt = str2date(endtime)
-            except:
+                str2date(endtime)
+            except Exception:
                 # Send Error 400
-                messDict = {'code': 0,
+                messdict = {'code': 0,
                             'message': 'Error converting the "endtime" parameter (%s).' % endtime}
-                message = json.dumps(messDict)
+                message = json.dumps(messdict)
                 self.log.error(message)
                 raise cherrypy.HTTPError(400, message)
 
         # try:
-        self.cursor = self.conn.cursor()
         query = 'select code, start, end, netClass, archive, restricted from Network'
         fields = ['code', 'start', 'end', 'netClass', 'archive', 'restricted']
         fields.extend(self.extrafields)
@@ -434,16 +462,14 @@ class NetworksAPI(object):
 class SC3MicroApi(object):
     """Main class including the dispatcher."""
 
-    def __init__(self, conn):
+    def __init__(self, host, user, password, db):
         """Constructor of the SC3MicroApi object."""
         # config = configparser.RawConfigParser()
         # here = os.path.dirname(__file__)
         # config.read(os.path.join(here, 'sc3microapi.cfg'))
 
-        # Save connection
-        self.conn = conn
-        self.network = NetworksAPI(conn)
-        self.access = AccessAPI(conn)
+        self.network = NetworksAPI(host, user, password, db)
+        self.access = AccessAPI(host, user, password, db)
         self.log = logging.getLogger('SC3MicroAPI')
 
     @cherrypy.expose
@@ -454,7 +480,7 @@ class SC3MicroApi(object):
         try:
             with open('help.html') as fin:
                 texthelp = fin.read()
-        except:
+        except FileNotFoundError:
             texthelp = """<html>
                             <head>sc3microapi</head>
                             <body>
@@ -485,19 +511,17 @@ def main():
     # Logging configuration
     for modname in ['main', 'NetworksAPI', 'AccessAPI', 'SC3MicroAPI']:
         verbo = config.get('Logging', modname) if config.has_option('Logging', modname) else 'INFO'
-        verboNum = getattr(logging, verbo.upper(), 30)
-        LOG_CONF['loggers'][modname]['level'] = verboNum
+        verbonum = getattr(logging, verbo.upper(), 30)
+        LOG_CONF['loggers'][modname]['level'] = verbonum
 
     logging.config.dictConfig(LOG_CONF)
-    loclog = logging.getLogger('main')
+    # loclog = logging.getLogger('main')
 
     # Read connection parameters
     host = config.get('mysql', 'host')
     user = config.get('mysql', 'user')
     password = config.get('mysql', 'password')
     db = config.get('mysql', 'db')
-    
-    conn = MySQLdb.connect(host, user, password, db, cursorclass=DictCursor)
     
     server_config = {
         'global': {
@@ -509,7 +533,7 @@ def main():
     }
     # Update the global CherryPy configuration
     cherrypy.config.update(server_config)
-    cherrypy.tree.mount(SC3MicroApi(conn), '/sc3microapi')
+    cherrypy.tree.mount(SC3MicroApi(host, user, password, db), '/sc3microapi')
 
     plugins.Daemonizer(cherrypy.engine).subscribe()
     if hasattr(cherrypy.engine, 'signal_handler'):
@@ -529,6 +553,7 @@ def main():
     # cherrypy.engine.signals.subscribe()
     # cherrypy.engine.start()
     # cherrypy.engine.block()
+
 
 if __name__ == "__main__":
     main()
