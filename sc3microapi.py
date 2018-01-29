@@ -631,8 +631,8 @@ class VirtualNetsAPI(object):
             raise cherrypy.HTTPError(400, message)
 
         # try:
-        query = 'select stationID from StationGroup as sg join StationReference as sr ' + \
-            'where sg._oid = sr._parent_oid and sg.code ='
+        query = 'select stationID from StationGroup as sg join StationReference as sr'
+
         fields = ['stationID']
 
         whereclause = ['sg._oid = sr._parent_oid']
