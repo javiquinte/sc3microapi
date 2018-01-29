@@ -334,7 +334,7 @@ class NetworksAPI(object):
 
     @cherrypy.expose
     def index(self, net=None, outformat='json', restricted=None, archive=None,
-              netclass=None, starttime=None, endtime=None, **kwargs):
+              netclass=None, shared=None, starttime=None, endtime=None, **kwargs):
         """List available networks in the system.
 
         :param net: Network code
@@ -347,6 +347,8 @@ class NetworksAPI(object):
         :type archive: str
         :param netclass: Tpye of network (permanent 'p' or temporary 't')
         :type netclass: str
+        :param shared: Is the network shared with EIDA? ('0' or '1')
+        :type shared: str
         :param starttime: Start time in isoformat
         :type starttime: str
         :param endtime: End time in isoformat
@@ -376,6 +378,20 @@ class NetworksAPI(object):
                 # Send Error 400
                 messdict = {'code': 0,
                             'message': 'Restricted does not seem to be 0 or 1.'}
+                message = json.dumps(messdict)
+                self.log.error(message)
+                raise cherrypy.HTTPError(400, message)
+
+        # Check parameters
+        if shared is not None:
+            try:
+                shared = int(shared)
+                if shared not in [0, 1]:
+                    raise Exception
+            except Exception:
+                # Send Error 400
+                messdict = {'code': 0,
+                            'message': 'Shared does not seem to be 0 or 1.'}
                 message = json.dumps(messdict)
                 self.log.error(message)
                 raise cherrypy.HTTPError(400, message)
@@ -414,8 +430,8 @@ class NetworksAPI(object):
                 raise cherrypy.HTTPError(400, message)
 
         # try:
-        query = 'select code, start, end, netClass, archive, restricted from Network'
-        fields = ['code', 'start', 'end', 'netClass', 'archive', 'restricted']
+        query = 'select code, start, end, netClass, archive, restricted, shared from Network'
+        fields = ['code', 'start', 'end', 'netClass', 'archive', 'restricted', 'shared']
         fields.extend(self.extrafields)
 
         whereclause = []
@@ -435,6 +451,10 @@ class NetworksAPI(object):
         if netclass is not None:
             whereclause.append('netClass=%s')
             variables.append(netclass)
+
+        if shared is not None:
+            whereclause.append('shared=%s')
+            variables.append(shared)
 
         if starttime is not None:
             whereclause.append('start>=%s')
