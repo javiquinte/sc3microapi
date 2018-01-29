@@ -459,6 +459,125 @@ class NetworksAPI(object):
         #     raise cherrypy.HTTPError(404, message)
 
 
+@cherrypy.expose
+@cherrypy.popargs('net')
+class VirtualNetAPI(object):
+    """Object dispatching methods related to virtual networks."""
+
+    def __init__(self, host, user, password, db):
+        """Constructor of the NetworksAPI class."""
+        # Save connection
+        self.conn = SC3dbconnection(host, user, password, db)
+        self.cursor = self.conn.cursor()
+        self.log = logging.getLogger('VirtualNetAPI')
+
+        # Get extra fields from the cfg file
+        cfgfile = configparser.RawConfigParser()
+        cfgfile.read('sc3microapi.cfg')
+
+    @cherrypy.expose
+    def index(self, net=None, outformat='json', typevn=None,
+              starttime=None, endtime=None, **kwargs):
+        """List available networks in the system.
+
+        :param net: Network code
+        :type net: str
+        :param outformat: Output format (json, text)
+        :type outformat: str
+        :param typevn: Type of virtual network
+        :type typevn: str
+        :param starttime: Start time in isoformat
+        :type starttime: str
+        :param endtime: End time in isoformat
+        :type endtime: str
+        :returns: Data related to the available networks.
+        :rtype: utf-8 encoded string
+        :raises: cherrypy.HTTPError
+        """
+
+        if len(kwargs):
+            # Send Error 400
+            messdict = {'code': 0,
+                        'message': 'Unknown parameter(s) "{}".'.format(kwargs.items())}
+            message = json.dumps(messdict)
+            self.log.error(message)
+            raise cherrypy.HTTPError(400, message)
+
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+
+        try:
+            if outformat not in ['json', 'text']:
+                raise Exception
+        except Exception:
+            # Send Error 400
+            messdict = {'code': 0,
+                        'message': 'Wrong value in the "outformat" parameter.'}
+            message = json.dumps(messdict)
+            self.log.error(message)
+            raise cherrypy.HTTPError(400, message)
+
+        if starttime is not None:
+            try:
+                str2date(starttime)
+            except Exception:
+                # Send Error 400
+                messdict = {'code': 0,
+                            'message': 'Error converting the "starttime" parameter (%s).' % starttime}
+                message = json.dumps(messdict)
+                self.log.error(message)
+                raise cherrypy.HTTPError(400, message)
+
+        if endtime is not None:
+            try:
+                str2date(endtime)
+            except Exception:
+                # Send Error 400
+                messdict = {'code': 0,
+                            'message': 'Error converting the "endtime" parameter (%s).' % endtime}
+                message = json.dumps(messdict)
+                self.log.error(message)
+                raise cherrypy.HTTPError(400, message)
+
+        # try:
+        query = 'select code, start, end, type from StationGroup'
+        fields = ['code', 'start', 'end', 'type']
+
+        whereclause = []
+        variables = []
+        if net is not None:
+            whereclause.append('code=%s')
+            variables.append(net)
+
+        if typevn is not None:
+            whereclause.append('type=%s')
+            variables.append(typevn)
+
+        if starttime is not None:
+            whereclause.append('start>=%s')
+            variables.append(starttime)
+
+        if endtime is not None:
+            whereclause.append('end<=%s')
+            variables.append(endtime)
+
+        if len(whereclause):
+            query = query + ' where ' + ' and '.join(whereclause)
+
+        self.cursor.execute(query, variables)
+
+        if outformat == 'json':
+            return json.dumps(self.cursor.fetchall(),
+                              default=datetime.datetime.isoformat).encode('utf-8')
+        elif outformat == 'text':
+            fout = io.StringIO("")
+            writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
+            writer.writeheader()
+            writer.writerows(self.cursor.fetchall())
+            fout.seek(0)
+            cherrypy.response.headers['Content-Type'] = 'text/plain'
+            return fout.read().encode('utf-8')
+
+
 class SC3MicroApi(object):
     """Main class including the dispatcher."""
 
@@ -469,6 +588,7 @@ class SC3MicroApi(object):
         # config.read(os.path.join(here, 'sc3microapi.cfg'))
 
         self.network = NetworksAPI(host, user, password, db)
+        self.virtualnet = VirtualNetAPI(host, user, password, db)
         self.access = AccessAPI(host, user, password, db)
         self.log = logging.getLogger('SC3MicroAPI')
 
