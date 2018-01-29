@@ -596,6 +596,67 @@ class VirtualNetsAPI(object):
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return fout.read().encode('utf-8')
 
+    @cherrypy.expose
+    def stations(self, net, outformat='json', **kwargs):
+        """List available networks in the system.
+
+        :param net: Network code
+        :type net: str
+        :param outformat: Output format (json, text)
+        :type outformat: str
+        :returns: List of stations in the virtual network.
+        :rtype: utf-8 encoded string
+        :raises: cherrypy.HTTPError
+        """
+
+        if len(kwargs):
+            # Send Error 400
+            messdict = {'code': 0,
+                        'message': 'Unknown parameter(s) "{}".'.format(kwargs.items())}
+            message = json.dumps(messdict)
+            self.log.error(message)
+            raise cherrypy.HTTPError(400, message)
+
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+
+        try:
+            if outformat not in ['json', 'text']:
+                raise Exception
+        except Exception:
+            # Send Error 400
+            messdict = {'code': 0,
+                        'message': 'Wrong value in the "outformat" parameter.'}
+            message = json.dumps(messdict)
+            self.log.error(message)
+            raise cherrypy.HTTPError(400, message)
+
+        # try:
+        query = 'select stationID from StationGroup as sg join StationReference as sr ' + \
+            'where sg._oid = sr._parent_oid and sg.code ='
+        fields = ['stationID']
+
+        whereclause = ['sg._oid = sr._parent_oid']
+        variables = []
+        whereclause.append('code=%s')
+        variables.append(net)
+
+        if len(whereclause):
+            query = query + ' where ' + ' and '.join(whereclause)
+
+        self.cursor.execute(query, variables)
+
+        if outformat == 'json':
+            return json.dumps(self.cursor.fetchall(),
+                              default=datetime.datetime.isoformat).encode('utf-8')
+        elif outformat == 'text':
+            fout = io.StringIO("")
+            writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
+            writer.writeheader()
+            writer.writerows(self.cursor.fetchall())
+            fout.seek(0)
+            cherrypy.response.headers['Content-Type'] = 'text/plain'
+            return fout.read().encode('utf-8')
+
 
 class SC3MicroApi(object):
     """Main class including the dispatcher."""
