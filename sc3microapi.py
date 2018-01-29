@@ -67,6 +67,15 @@ LOG_CONF = {
             'backupCount': 20,
             'encoding': 'utf8'
         },
+        'cherrypyError': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'standard',
+            'filename': os.path.join(os.path.expanduser('~'), '.sc3microapi', 'errors.log'),
+            'maxBytes': 10485760,
+            'backupCount': 20,
+            'encoding': 'utf8'
+        },
     },
     'loggers': {
         'main': {
@@ -83,6 +92,11 @@ LOG_CONF = {
             'level': 'INFO',
             'propagate': False
         },
+        'VirtualNetsAPI': {
+            'handlers': ['sc3microapilog'],
+            'level': 'INFO',
+            'propagate': False
+        },
         'SC3MicroAPI': {
             'handlers': ['sc3microapilog'],
             'level': 'INFO',
@@ -90,6 +104,11 @@ LOG_CONF = {
         },
         'cherrypy.access': {
             'handlers': ['cherrypyAccess'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'cherrypy.error': {
+            'handlers': ['cherrypyError'],
             'level': 'INFO',
             'propagate': False
         },
@@ -461,7 +480,7 @@ class NetworksAPI(object):
 
 @cherrypy.expose
 @cherrypy.popargs('net')
-class VirtualNetAPI(object):
+class VirtualNetsAPI(object):
     """Object dispatching methods related to virtual networks."""
 
     def __init__(self, host, user, password, db):
@@ -588,7 +607,7 @@ class SC3MicroApi(object):
         # config.read(os.path.join(here, 'sc3microapi.cfg'))
 
         self.network = NetworksAPI(host, user, password, db)
-        self.virtualnet = VirtualNetAPI(host, user, password, db)
+        self.virtualnet = VirtualNetsAPI(host, user, password, db)
         self.access = AccessAPI(host, user, password, db)
         self.log = logging.getLogger('SC3MicroAPI')
 
