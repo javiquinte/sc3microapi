@@ -631,11 +631,11 @@ class VirtualNetsAPI(object):
             raise cherrypy.HTTPError(400, message)
 
         # try:
-        query = 'select ne.code as network, st.code as station from StationGroup as sg ' + \
-            'join StationReference as sr join PublicObject as po join Station as st ' + \
-            'join  Network as ne'
+        query = 'select ne.code as network, st.code as station, st.start as start, st.end as end ' + \
+            'from StationGroup as sg join StationReference as sr join PublicObject as po ' + \
+            'join Station as st join  Network as ne'
 
-        fields = ['network', 'station']
+        fields = ['network', 'station', 'start', 'end']
 
         whereclause = ['sg._oid = sr._parent_oid',
                        'po.publicID = sr.stationID',
