@@ -147,11 +147,19 @@ class SC3dbconnection(object):
         self.password = password
         self.db = db
         # Save connection
-        self.conn = MySQLdb.connect(host, user, password, db, cursorclass=DictCursor)
+        self.conn = self.connect(host, user, password, db)
         self.log = logging.getLogger('SC3dbconnection')
 
+    def connect(self, host, user, password, db='seiscomp3'):
+        self.conn = MySQLdb.connect(host, user, password, db, cursorclass=DictCursor)
+
     def cursor(self):
-        return self.conn.cursor()
+        try:
+            cur = self.conn.cursor()
+        except (AttributeError, MySQLdb.OperationalError):
+            self.connect(self.host, self.user, self.password, self.db)
+            cur = self.conn.cursor()
+        return cur
 
 
 @cherrypy.expose
