@@ -163,7 +163,6 @@ class AccessAPI(object):
         """Constructor of the AccessAPI class."""
         # Save connection
         self.conn = SC3dbconnection(host, user, password, db)
-        self.cursor = self.conn.cursor()
         self.log = logging.getLogger('AccessAPI')
 
     def __access(self, email, net='', sta='', loc='', cha='', starttime=None, endtime=None):
@@ -321,7 +320,6 @@ class NetworksAPI(object):
         """Constructor of the NetworksAPI class."""
         # Save connection
         self.conn = SC3dbconnection(host, user, password, db)
-        self.cursor = self.conn.cursor()
         self.log = logging.getLogger('NetworksAPI')
 
         # Get extra fields from the cfg file
@@ -468,6 +466,7 @@ class NetworksAPI(object):
         if len(whereclause):
             query = query + ' where ' + ' and '.join(whereclause)
 
+        self.cursor = self.conn.cursor()
         self.cursor.execute(query, variables)
 
         # Complete SC3 data with local data
@@ -508,7 +507,6 @@ class VirtualNetsAPI(object):
         """Constructor of the NetworksAPI class."""
         # Save connection
         self.conn = SC3dbconnection(host, user, password, db)
-        self.cursor = self.conn.cursor()
         self.log = logging.getLogger('VirtualNetAPI')
 
         # Get extra fields from the cfg file
@@ -603,6 +601,7 @@ class VirtualNetsAPI(object):
         if len(whereclause):
             query = query + ' where ' + ' and '.join(whereclause)
 
+        self.cursor = self.conn.cursor()
         self.cursor.execute(query, variables)
 
         if outformat == 'json':
@@ -669,6 +668,7 @@ class VirtualNetsAPI(object):
         if len(whereclause):
             query = query + ' where ' + ' and '.join(whereclause)
 
+        self.cursor = self.conn.cursor()
         self.cursor.execute(query, variables)
 
         if outformat == 'json':
