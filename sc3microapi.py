@@ -153,7 +153,8 @@ class SC3dbconnection(object):
 
     def connect(self):
         # Save connection
-        self.conn = MySQLdb.connect(host, user, password, db, cursorclass=DictCursor)
+        self.conn = MySQLdb.connect(self.host, self.user, self.password,
+                                    self.db, cursorclass=DictCursor)
 
     def cursor(self):
         try:
