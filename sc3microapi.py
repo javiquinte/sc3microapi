@@ -2,7 +2,7 @@
 #
 # sc3microapi WS - prototype
 #
-# (c) 2017 Javier Quinteros, GEOFON team
+# (c) 2017-2020 Javier Quinteros, GEOFON team
 # <javier@gfz-potsdam.de>
 #
 # ----------------------------------------------------------------------
