@@ -499,6 +499,29 @@ class NetworksAPI(object):
             fout.seek(0)
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return fout.read().encode('utf-8')
+        elif outformat == 'xml':
+            header = """
+<?xml version="1.0" encoding="utf-8"?>
+  <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+            """
+            footer = """</ns0:routing>"""
+
+            outxml = [header]
+            for net in result:
+                routetext = """
+ <ns0:route networkCode="%s" stationCode="*" locationCode="*" streamCode="*">
+  <ns0:station address="http://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="2" start="1980-01-01T00:00:00" end="" />
+  <ns0:wfcatalog address="http://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="2" start="1980-01-01T00:00:00" end="" />
+  <ns0:dataselect address="http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="2" start="1980-01-01T00:00:00" end="" />
+ </ns0:route>
+ """
+
+                outxml.append(routetext % net['code'])
+
+            outxml.append(footer)
+
+            return '\n'.join(outxml)
+
         # except:
         #     # Send Error 404
         #     messDict = {'code': 0,
