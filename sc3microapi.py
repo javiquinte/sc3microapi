@@ -398,8 +398,6 @@ class NetworksAPI(object):
             self.log.error(message)
             raise cherrypy.HTTPError(400, message)
 
-        cherrypy.response.headers['Content-Type'] = 'application/json'
-
         # Check parameters
         if restricted is not None:
             try:
@@ -510,8 +508,12 @@ class NetworksAPI(object):
             curnet = self.conn.fetchone()
 
         if outformat == 'json':
+            cherrypy.response.headers['Content-Type'] = 'application/json'
+
             return json.dumps(result, default=datetime.datetime.isoformat).encode('utf-8')
         elif outformat == 'text':
+            cherrypy.response.headers['Content-Type'] = 'text/plain'
+
             fout = io.StringIO("")
             writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
             writer.writeheader()
@@ -520,6 +522,8 @@ class NetworksAPI(object):
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return fout.read().encode('utf-8')
         elif outformat == 'xml':
+            cherrypy.response.headers['Content-Type'] = 'application/xml'
+
             header = """
 <?xml version="1.0" encoding="utf-8"?>
   <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
@@ -540,7 +544,7 @@ class NetworksAPI(object):
 
             outxml.append(footer)
 
-            return '\n'.join(outxml).encode('utf-8')
+            return ''.join(outxml).encode('utf-8')
 
         # except:
         #     # Send Error 404
