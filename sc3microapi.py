@@ -533,14 +533,14 @@ class NetworksAPI(object):
             outxml = [header]
             for net in result:
                 routetext = """
- <ns0:route networkCode="%s" stationCode="*" locationCode="*" streamCode="*">
-  <ns0:station address="http://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="2" start="1980-01-01T00:00:00" end="" />
-  <ns0:wfcatalog address="http://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="2" start="1980-01-01T00:00:00" end="" />
-  <ns0:dataselect address="http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="2" start="1980-01-01T00:00:00" end="" />
+ <ns0:route networkCode="{netcode}" stationCode="*" locationCode="*" streamCode="*">
+  <ns0:station address="http://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{netstart}" end="{netend}" />
+  <ns0:wfcatalog address="http://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{netstart}" end="{netend}" />
+  <ns0:dataselect address="http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{netstart}" end="{netend}" />
  </ns0:route>
  """
 
-                outxml.append(routetext % net['code'])
+                outxml.append(routetext.format(netcode=net['code'], netstart=net['start'], netend=net['end']))
 
             outxml.append(footer)
 
