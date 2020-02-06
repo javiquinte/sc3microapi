@@ -524,8 +524,7 @@ class NetworksAPI(object):
         elif outformat == 'xml':
             cherrypy.response.headers['Content-Type'] = 'application/xml'
 
-            header = """
-<?xml version="1.0" encoding="utf-8"?>
+            header = """<?xml version="1.0" encoding="utf-8"?>
   <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
             """
             footer = """</ns0:routing>"""
