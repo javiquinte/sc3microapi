@@ -371,7 +371,7 @@ class NetworksAPI(object):
 
         :param net: Network code
         :type net: str
-        :param outformat: Output format (json, text)
+        :param outformat: Output format (json, text, xml)
         :type outformat: str
         :param restricted: Restricted status of the Network ('0' or '1')
         :type restricted: str
@@ -428,10 +428,7 @@ class NetworksAPI(object):
                 self.log.error(message)
                 raise cherrypy.HTTPError(400, message)
 
-        try:
-            if outformat not in ['json', 'text', 'xml']:
-                raise Exception
-        except Exception:
+        if outformat not in ['json', 'text', 'xml']:
             # Send Error 400
             messdict = {'code': 0,
                         'message': 'Wrong value in the "outformat" parameter.'}
