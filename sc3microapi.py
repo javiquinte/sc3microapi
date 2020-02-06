@@ -539,8 +539,10 @@ class NetworksAPI(object):
   <ns0:dataselect address="http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{netstart}" end="{netend}" />
  </ns0:route>
  """
-
-                outxml.append(routetext.format(netcode=net['code'], netstart=net['start'], netend=net['end']))
+                nc = net['code']
+                ns = net['start'].isoformat()
+                ne = net['end'].isoformat() if net['end'] is not None else ''
+                outxml.append(routetext.format(netcode=nc, netstart=ns, netend=ne))
 
             outxml.append(footer)
 
