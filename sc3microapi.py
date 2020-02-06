@@ -83,9 +83,9 @@ LOG_CONF = {
             'level': 'INFO'
         },
         'SC3dbconnection': {
-                'handlers': ['sc3microapilog'],
-                'level': 'DEBUG',
-                'propagate': False
+            'handlers': ['sc3microapilog'],
+            'level': 'DEBUG',
+            'propagate': False
         },
         'AccessAPI': {
             'handlers': ['sc3microapilog'],
@@ -163,7 +163,6 @@ class SC3dbconnection(object):
                                     self.db, cursorclass=DictCursor)
 
     def fetchone(self):
-
         if self.cursor is None:
             raise Exception('Cursor has not been created!')
 
@@ -176,14 +175,12 @@ class SC3dbconnection(object):
         return self.cursor.fetchall()
 
     def execute(self, query, variables):
-
         try:
             self.cursor = self.conn.cursor()
             self.cursor.execute(query, variables)
         except MySQLdb.OperationalError:
             self.log.error('OperationalError exception. Trying to reconnect.')
             self.connect()
-
             self.cursor = self.conn.cursor()
             self.cursor.execute(query, variables)
             self.log.warning('Reconnection successful: {}.'.format(self.conn))
