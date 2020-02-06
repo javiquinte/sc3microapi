@@ -82,6 +82,11 @@ LOG_CONF = {
             'handlers': ['sc3microapilog'],
             'level': 'INFO'
         },
+        'SC3dbconnection': {
+                'handlers': ['sc3microapilog'],
+                'level': 'DEBUG',
+                'propagate': False
+        },
         'AccessAPI': {
             'handlers': ['sc3microapilog'],
             'level': 'INFO',
@@ -89,7 +94,7 @@ LOG_CONF = {
         },
         'NetworksAPI': {
             'handlers': ['sc3microapilog'],
-            'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': False
         },
         'VirtualNetsAPI': {
@@ -147,6 +152,7 @@ class SC3dbconnection(object):
         self.password = password
         self.db = db
         self.conn = None
+        self.cursor = None
         # Save connection
         self.connect()
         self.log = logging.getLogger('SC3dbconnection')
@@ -156,14 +162,33 @@ class SC3dbconnection(object):
         self.conn = MySQLdb.connect(self.host, self.user, self.password,
                                     self.db, cursorclass=DictCursor)
 
-    def cursor(self):
-        try:
-            cur = self.conn.cursor()
-        except (AttributeError, MySQLdb.OperationalError):
-            self.connect()
-            cur = self.conn.cursor()
+    def fetchone(self):
 
-        return cur
+        if self.cursor is None:
+            raise Exception('Cursor has not been created!')
+
+        return self.cursor.fetchone()
+
+    def fetchall(self):
+        if self.cursor is None:
+            raise Exception('Cursor has not been created!')
+
+        return self.cursor.fetchall()
+
+    def execute(self, query, variables):
+
+        try:
+            self.cursor = self.conn.cursor()
+            self.cursor.execute(query, variables)
+        except MySQLdb.OperationalError:
+            self.log.error('OperationalError exception. Trying to reconnect.')
+            self.connect()
+
+            self.cursor = self.conn.cursor()
+            self.cursor.execute(query, variables)
+            self.log.warning('Reconnection successful: {}.'.format(self.conn))
+
+        return
 
 @cherrypy.expose
 class AccessAPI(object):
@@ -177,7 +202,7 @@ class AccessAPI(object):
 
     def __access(self, email, net='', sta='', loc='', cha='', starttime=None, endtime=None):
         # Check network access
-        self.cursor = self.conn.cursor()
+        # self.cursor = self.conn.cursor()
         whereclause = ['networkCode=%s',
                        'stationCode=%s',
                        'locationCode=%s',
@@ -194,8 +219,8 @@ class AccessAPI(object):
             variables.append(endtime)
 
         query = 'select count(*) as howmany from Access where ' + ' and '.join(whereclause)
-        self.cursor.execute(query, variables)
-        result = self.cursor.fetchone()
+        self.conn.execute(query, variables)
+        result = self.conn.fetchone()
 
         if result is not None:
             return result['howmany']
@@ -273,12 +298,13 @@ class AccessAPI(object):
             whereclause.append('(end>=%s or end is NULL)')
             variables.append(endtime)
 
-        self.cursor = self.conn.cursor()
+        # self.cursor = self.conn.cursor()
         query = 'select distinct restricted from Network where '
         query = query + ' and '.join(whereclause)
 
-        self.cursor.execute(query, variables)
-        result = self.cursor.fetchall()
+        self.conn.execute(query, variables)
+        result = self.conn.fetchall()
+
         if len(result) != 1:
             if len(result):
                 mess = 'Restricted and non-restricted streams found. More filters are needed.'
@@ -476,18 +502,18 @@ class NetworksAPI(object):
         if len(whereclause):
             query = query + ' where ' + ' and '.join(whereclause)
 
-        self.cursor = self.conn.cursor()
-        self.cursor.execute(query, variables)
+        # self.cursor = self.conn.cursor()
+        self.conn.execute(query, variables)
 
         # Complete SC3 data with local data
         result = []
-        curnet = self.cursor.fetchone()
+        curnet = self.conn.fetchone()
         while curnet:
             for field in self.extrafields:
                 curnet[field] = self.netsuppl.get(curnet['code'] + '-' + str(curnet['start'].year),
                                                   field, fallback=None)
             result.append(curnet)
-            curnet = self.cursor.fetchone()
+            curnet = self.conn.fetchone()
 
         if outformat == 'json':
             return json.dumps(result, default=datetime.datetime.isoformat).encode('utf-8')
@@ -634,17 +660,17 @@ class VirtualNetsAPI(object):
         if len(whereclause):
             query = query + ' where ' + ' and '.join(whereclause)
 
-        self.cursor = self.conn.cursor()
-        self.cursor.execute(query, variables)
+        # self.cursor = self.conn.cursor()
+        self.conn.execute(query, variables)
 
         if outformat == 'json':
-            return json.dumps(self.cursor.fetchall(),
+            return json.dumps(self.conn.fetchall(),
                               default=datetime.datetime.isoformat).encode('utf-8')
         elif outformat == 'text':
             fout = io.StringIO("")
             writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
             writer.writeheader()
-            writer.writerows(self.cursor.fetchall())
+            writer.writerows(self.conn.fetchall())
             fout.seek(0)
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return fout.read().encode('utf-8')
@@ -701,17 +727,17 @@ class VirtualNetsAPI(object):
         if len(whereclause):
             query = query + ' where ' + ' and '.join(whereclause)
 
-        self.cursor = self.conn.cursor()
-        self.cursor.execute(query, variables)
+        # self.cursor = self.conn.cursor()
+        self.conn.execute(query, variables)
 
         if outformat == 'json':
-            return json.dumps(self.cursor.fetchall(),
+            return json.dumps(self.conn.fetchall(),
                               default=datetime.datetime.isoformat).encode('utf-8')
         elif outformat == 'text':
             fout = io.StringIO("")
             writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
             writer.writeheader()
-            writer.writerows(self.cursor.fetchall())
+            writer.writerows(self.conn.fetchall())
             fout.seek(0)
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return fout.read().encode('utf-8')
@@ -756,7 +782,7 @@ class SC3MicroApi(object):
         :returns: Version of the system
         :rtype: string
         """
-        version = '0.1a1'
+        version = '0.1b1'
         cherrypy.response.headers['Content-Type'] = 'text/plain'
         return version.encode('utf-8')
 
