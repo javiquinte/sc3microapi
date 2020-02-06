@@ -540,7 +540,7 @@ class NetworksAPI(object):
 
             outxml.append(footer)
 
-            return '\n'.join(outxml)
+            return '\n'.join(outxml).encode('utf-8')
 
         # except:
         #     # Send Error 404
