@@ -429,7 +429,7 @@ class NetworksAPI(object):
                 raise cherrypy.HTTPError(400, message)
 
         try:
-            if outformat not in ['json', 'text']:
+            if outformat not in ['json', 'text', 'xml']:
                 raise Exception
         except Exception:
             # Send Error 400
