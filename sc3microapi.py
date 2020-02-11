@@ -442,13 +442,14 @@ class StationsAPI(object):
                 raise cherrypy.HTTPError(400, message)
 
         # try:
-        query = ('select archiveNetworkCode as network, code, latitude, longitude, elevation, '
-                 'place, country, start, end, restricted from Station')
+        query = ('select Network.code as network, Station.code as code, latitude, '
+                 'longitude, elevation, place, country, start, end, restricted '
+                 'from Station join Network')
         fields = ['network', 'code', 'latitude', 'longitude', 'elevation',
                   'place', 'country', 'start', 'end', 'restricted']
         # fields.extend(self.extrafields)
 
-        whereclause = []
+        whereclause = ['Station._parent_oid=Network._oid']
         variables = []
         if net is not None:
             whereclause.append('archiveNetworkCode=%s')
