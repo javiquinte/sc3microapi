@@ -345,8 +345,7 @@ class AccessAPI(object):
 
 
 @cherrypy.expose
-@cherrypy.popargs('net')
-@cherrypy.popargs('sta')
+@cherrypy.popargs('net', 'sta')
 class StationsAPI(object):
     """Object dispatching methods related to stations."""
 
