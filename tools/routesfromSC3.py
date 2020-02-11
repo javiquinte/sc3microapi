@@ -28,7 +28,7 @@
 import sys
 import argparse
 import requests
-import xml.etree.cElementTree as ET
+import xml.etree.ElementTree as ET
 import configparser
 
 
@@ -82,6 +82,7 @@ def main():
     # Filter and modify result based in file with rules
 
     # Read networks to skip from a file with rules
+    nets2skip = list()
     if args.rules is not None:
         config = configparser.RawConfigParser()
         with open(args.rules, encoding='utf-8') as c:
@@ -91,21 +92,15 @@ def main():
             nets2skip = [x.strip() for x in config.get('Networks', 'skip').split(',')]
 
     elem = ET.fromstring(r.content)
-    print('Before')
-    for net in elem:
-        print(net.attrib)
-        if net.get('networkCode') in nets2skip:
-            # FIXME This seems to modify the sequence while reading. Change!
-            elem.remove(net)
-            # print('Borro %s' % net.get('networkCode'))
-
-    print('After')
-    for net in elem:
-        print(net.attrib)
+    
+    if len(nets2skip):
+        for net in reversed(elem):
+            # print(net.attrib)
+            if net.get('networkCode') in nets2skip:
+                elem.remove(net)
 
     with open(args.output, 'wb') as fout:
-        fout.write(r.content)
-
+        fout.write(ET.tostring(elem))
 
 
 if __name__ == '__main__':
