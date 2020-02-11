@@ -452,7 +452,7 @@ class StationsAPI(object):
         whereclause = ['S._parent_oid=N._oid']
         variables = []
         if net is not None:
-            whereclause.append('archiveNetworkCode=%s')
+            whereclause.append('network=%s')
             variables.append(net)
 
         if sta is not None:
