@@ -366,7 +366,7 @@ class StationsAPI(object):
 
     @cherrypy.expose
     def index(self, net=None, sta=None, outformat='json', restricted=None, archive=None,
-              starttime=None, endtime=None, **kwargs):
+              shared=None, starttime=None, endtime=None, **kwargs):
         """List available stations in the system.
 
         :param net: Network code
@@ -379,6 +379,8 @@ class StationsAPI(object):
         :type restricted: str
         :param archive: Institution archiving the station
         :type archive: str
+        :param shared: Is the network shared with EIDA? ('0' or '1')
+        :type shared: str
         :param starttime: Start time in isoformat
         :type starttime: str
         :param endtime: End time in isoformat
@@ -406,6 +408,20 @@ class StationsAPI(object):
                 # Send Error 400
                 messdict = {'code': 0,
                             'message': 'Restricted does not seem to be 0 or 1.'}
+                message = json.dumps(messdict)
+                self.log.error(message)
+                raise cherrypy.HTTPError(400, message)
+
+        # Check parameters
+        if shared is not None:
+            try:
+                shared = int(shared)
+                if shared not in [0, 1]:
+                    raise Exception
+            except Exception:
+                # Send Error 400
+                messdict = {'code': 0,
+                            'message': 'Shared does not seem to be 0 or 1.'}
                 message = json.dumps(messdict)
                 self.log.error(message)
                 raise cherrypy.HTTPError(400, message)
@@ -441,11 +457,11 @@ class StationsAPI(object):
                 raise cherrypy.HTTPError(400, message)
 
         # try:
-        query = ('select N.code as network, S.code as code, latitude, '
-                 'longitude, elevation, place, country, S.start, S.end, S.restricted '
+        query = ('select N.code as network, S.code as code, latitude, longitude, '
+                 'elevation, place, country, S.start, S.end, S.restricted, S.shared '
                  'from Station as S join Network as N')
         fields = ['network', 'code', 'latitude', 'longitude', 'elevation',
-                  'place', 'country', 'start', 'end', 'restricted']
+                  'place', 'country', 'start', 'end', 'restricted', 'shared']
         # fields.extend(self.extrafields)
 
         whereclause = ['S._parent_oid=N._oid']
@@ -479,6 +495,10 @@ class StationsAPI(object):
         if archive is not None:
             whereclause.append('S.archive=%s')
             variables.append(archive)
+
+        if shared is not None:
+            whereclause.append('S.shared=%s')
+            variables.append(shared)
 
         if starttime is not None:
             whereclause.append('S.start>=%s')

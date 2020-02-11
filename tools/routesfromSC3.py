@@ -124,6 +124,9 @@ def main():
         # Request in XML format ready to get ingested in a Routing Service
         params['outformat'] = 'xml'
 
+        if args.shared is not None:
+            params['shared'] = args.shared
+
         if args.archive is not None:
             params['archive'] = args.archive
 
