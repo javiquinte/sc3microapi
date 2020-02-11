@@ -443,7 +443,7 @@ class StationsAPI(object):
 
         # try:
         query = ('select N.code as network, S.code as code, latitude, '
-                 'longitude, elevation, place, country, S.start, S.end, restricted '
+                 'longitude, elevation, place, country, S.start, S.end, S.restricted '
                  'from Station as S join Network as N')
         fields = ['network', 'code', 'latitude', 'longitude', 'elevation',
                   'place', 'country', 'start', 'end', 'restricted']
