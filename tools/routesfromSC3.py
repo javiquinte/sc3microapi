@@ -32,6 +32,10 @@ import xml.etree.ElementTree as ET
 import configparser
 
 
+def istemporary(net):
+    return net[0] in '0123456789XYZ'
+
+
 def main():
     # Call the sc3microapi method "networks"
     urlbase = 'http://st27dmz.gfz-potsdam.de/sc3microapi'
@@ -59,6 +63,7 @@ def main():
 
     # Read networks to skip and stations to add individually from a file with rules
     nets2skip = list()
+    priority2 = list()
     stations2add = list()
 
     if args.rules is not None:
@@ -68,6 +73,9 @@ def main():
 
         if config.has_section('Networks') and 'skip' in config.options('Networks'):
             nets2skip = [x.strip() for x in config.get('Networks', 'skip').split(',')]
+
+        if config.has_section('Networks') and 'priority2' in config.options('Networks'):
+            priority2 = [x.strip() for x in config.get('Networks', 'priority2').split(',')]
 
         if config.has_section('Stations') and 'include' in config.options('Stations'):
             stations2add = [x.strip() for x in config.get('Stations', 'include').split(',')]
@@ -102,14 +110,27 @@ def main():
     if len(nets2skip):
         for net in reversed(elem):
             # Check the case of permanent networks
-            if net.get('networkCode') in nets2skip:
-                elem.remove(net)
-                continue
+            if not istemporary(net.get('networkCode')):
+                if net.get('networkCode') in nets2skip:
+                    elem.remove(net)
+                    continue
+
+                # Check if priority should be set to 2
+                if net.get('networkCode') in priority2:
+                    for route in net:
+                        route.set('priority', "2")
 
             # And temporary networks
-            net_start = '%s_%s' % (net.get('networkCode'), net[0].get('start')[:4])
-            if net_start in nets2skip:
-                elem.remove(net)
+            if istemporary(net.get('networkCode')):
+                net_start = '%s_%s' % (net.get('networkCode'), net[0].get('start')[:4])
+                if net_start in nets2skip:
+                    elem.remove(net)
+
+                # Check if priority should be set to 2
+                if net_start in priority2:
+                    for route in net:
+                        route.set('priority', "2")
+
 
     for netsta in stations2add:
         net, sta = netsta.split('.')
