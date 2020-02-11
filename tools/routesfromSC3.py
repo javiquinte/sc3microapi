@@ -55,6 +55,23 @@ def main():
                                  'DEBUG'])
     args = parser.parse_args()
 
+    # Filter and modify result based in file with rules
+
+    # Read networks to skip and stations to add individually from a file with rules
+    nets2skip = list()
+    stations2add = list()
+
+    if args.rules is not None:
+        config = configparser.RawConfigParser()
+        with open(args.rules, encoding='utf-8') as c:
+            config.read_file(c)
+
+        if config.has_section('Networks') and 'skip' in config.options('Networks'):
+            nets2skip = [x.strip() for x in config.get('Networks', 'skip').split(',')]
+
+        if config.has_section('Stations') and 'include' in config.options('Stations'):
+            stations2add = [x.strip() for x in config.get('Stations', 'include').split(',')]
+
     # Call the sc3microapi method "networks"
     url = '%s/network/' % args.url
 
@@ -79,18 +96,7 @@ def main():
         print('Error reading from %s with parameters: %s' % (url, params))
         sys.exit(2)
 
-    # Filter and modify result based in file with rules
-
-    # Read networks to skip from a file with rules
-    nets2skip = list()
-    if args.rules is not None:
-        config = configparser.RawConfigParser()
-        with open(args.rules, encoding='utf-8') as c:
-            config.read_file(c)
-
-        if config.has_section('Networks') and 'skip' in config.options('Networks'):
-            nets2skip = [x.strip() for x in config.get('Networks', 'skip').split(',')]
-
+    # Create the XML for the networks
     elem = ET.fromstring(r.content)
     
     if len(nets2skip):
@@ -104,6 +110,36 @@ def main():
             net_start = '%s_%s' % (net.get('networkCode'), net[0].get('start')[:4])
             if net_start in nets2skip:
                 elem.remove(net)
+
+    for netsta in stations2add:
+        net, sta = netsta.split('.')
+
+        # Call the sc3microapi method "stations"
+        if sta == '*':
+            url = '%s/station/%s' % (args.url, net)
+        else:
+            url = '%s/station/%s/%s' % (args.url, net, sta)
+
+        params = dict()
+        # Request in XML format ready to get ingested in a Routing Service
+        params['outformat'] = 'xml'
+
+        if args.archive is not None:
+            params['archive'] = args.archive
+
+        r = requests.get(url, params, headers=headers)
+
+        if r.status_code != 200:
+            print('Error reading from %s with parameters: %s' % (url, params))
+            sys.exit(2)
+
+    # Filter and modify result based in file with rules
+
+    # Create the XML for the networks
+    elem2 = ET.fromstring(r.content)
+
+    for stationroute in elem2:
+        elem.append(stationroute)
 
     with open(args.output, 'wb') as fout:
         fout.write(ET.tostring(elem))
