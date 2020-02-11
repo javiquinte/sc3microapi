@@ -647,7 +647,15 @@ class NetworksAPI(object):
         variables = []
         if net is not None:
             if net[0] in '0123456789XYZ':
-                net, year = net.split('_')
+                try:
+                    net, year = net.split('_')
+                except ValueError:
+                    # Send Error 400
+                    messdict = {'code': 0,
+                                'message': 'Wrong network code (%s). Temporary codes must include the start year (e.g. 4C_2011).' % net}
+                    message = json.dumps(messdict)
+                    self.log.error(message)
+                    raise cherrypy.HTTPError(400, message)
 
                 whereclause.append('YEAR(start)=%s')
                 variables.append(int(year))
