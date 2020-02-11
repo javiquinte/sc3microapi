@@ -95,8 +95,14 @@ def main():
     
     if len(nets2skip):
         for net in reversed(elem):
-            # print(net.attrib)
+            # Check the case of permanent networks
             if net.get('networkCode') in nets2skip:
+                elem.remove(net)
+                continue
+
+            # And temporary networks
+            net_start = '%s_%s' % (net.get('networkCode'), net[0].get('start')[:4])
+            if net_start in nets2skip:
                 elem.remove(net)
 
     with open(args.output, 'wb') as fout:
