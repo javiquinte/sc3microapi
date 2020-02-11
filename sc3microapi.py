@@ -442,9 +442,9 @@ class StationsAPI(object):
                 raise cherrypy.HTTPError(400, message)
 
         # try:
-        query = ('select Network.code as network, Station.code as code, latitude, '
-                 'longitude, elevation, place, country, start, end, restricted '
-                 'from Station join Network')
+        query = ('select N.code as network, S.code as code, latitude, '
+                 'longitude, elevation, place, country, S.start, S.end, restricted '
+                 'from Station as S join Network as N')
         fields = ['network', 'code', 'latitude', 'longitude', 'elevation',
                   'place', 'country', 'start', 'end', 'restricted']
         # fields.extend(self.extrafields)
