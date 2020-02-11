@@ -346,6 +346,188 @@ class AccessAPI(object):
 
 @cherrypy.expose
 @cherrypy.popargs('net')
+@cherrypy.popargs('sta')
+class StationsAPI(object):
+    """Object dispatching methods related to stations."""
+
+    def __init__(self, host, user, password, db):
+        """Constructor of the StationsAPI class."""
+        # Save connection
+        self.conn = SC3dbconnection(host, user, password, db)
+        self.log = logging.getLogger('StationsAPI')
+
+        # Get extra fields from the cfg file
+        cfgfile = configparser.RawConfigParser()
+        cfgfile.read('sc3microapi.cfg')
+
+        # extrafields = cfgfile.get('Service', 'station', fallback='')
+        # self.extrafields = extrafields.split(',') if len(extrafields) else []
+        # self.stasuppl = configparser.RawConfigParser()
+        # self.stasuppl.read('stations.cfg')
+
+    @cherrypy.expose
+    def index(self, net=None, sta=None, outformat='json', restricted=None, archive=None,
+              starttime=None, endtime=None, **kwargs):
+        """List available stations in the system.
+
+        :param net: Network code
+        :type net: str
+        :param sta: Station code
+        :type sta: str
+        :param outformat: Output format (json, text, xml)
+        :type outformat: str
+        :param restricted: Restricted status of the Station ('0' or '1')
+        :type restricted: str
+        :param archive: Institution archiving the station
+        :type archive: str
+        :param starttime: Start time in isoformat
+        :type starttime: str
+        :param endtime: End time in isoformat
+        :type endtime: str
+        :returns: Data related to the available stations.
+        :rtype: utf-8 encoded string
+        :raises: cherrypy.HTTPError
+        """
+
+        if len(kwargs):
+            # Send Error 400
+            messdict = {'code': 0,
+                        'message': 'Unknown parameter(s) "{}".'.format(kwargs.items())}
+            message = json.dumps(messdict)
+            self.log.error(message)
+            raise cherrypy.HTTPError(400, message)
+
+        # Check parameters
+        if restricted is not None:
+            try:
+                restricted = int(restricted)
+                if restricted not in [0, 1]:
+                    raise Exception
+            except Exception:
+                # Send Error 400
+                messdict = {'code': 0,
+                            'message': 'Restricted does not seem to be 0 or 1.'}
+                message = json.dumps(messdict)
+                self.log.error(message)
+                raise cherrypy.HTTPError(400, message)
+
+        if outformat not in ['json', 'text', 'xml']:
+            # Send Error 400
+            messdict = {'code': 0,
+                        'message': 'Wrong value in the "outformat" parameter.'}
+            message = json.dumps(messdict)
+            self.log.error(message)
+            raise cherrypy.HTTPError(400, message)
+
+        if starttime is not None:
+            try:
+                str2date(starttime)
+            except Exception:
+                # Send Error 400
+                messdict = {'code': 0,
+                            'message': 'Error converting the "starttime" parameter (%s).' % starttime}
+                message = json.dumps(messdict)
+                self.log.error(message)
+                raise cherrypy.HTTPError(400, message)
+
+        if endtime is not None:
+            try:
+                str2date(endtime)
+            except Exception:
+                # Send Error 400
+                messdict = {'code': 0,
+                            'message': 'Error converting the "endtime" parameter (%s).' % endtime}
+                message = json.dumps(messdict)
+                self.log.error(message)
+                raise cherrypy.HTTPError(400, message)
+
+        # try:
+        query = ('select archiveNetworkCode as network, code, latitude, longitude, elevation, '
+                 'place, country, start, end, restricted from Station')
+        fields = ['network', 'code', 'latitude', 'longitude', 'elevation',
+                  'place', 'country', 'start', 'end', 'restricted']
+        # fields.extend(self.extrafields)
+
+        whereclause = []
+        variables = []
+        if net is not None:
+            whereclause.append('archiveNetworkCode=%s')
+            variables.append(net)
+
+        if sta is not None:
+            whereclause.append('code=%s')
+            variables.append(sta)
+
+        if restricted is not None:
+            whereclause.append('restricted=%s')
+            variables.append(restricted)
+
+        if archive is not None:
+            whereclause.append('archive=%s')
+            variables.append(archive)
+
+        if starttime is not None:
+            whereclause.append('start>=%s')
+            variables.append(starttime)
+
+        if endtime is not None:
+            whereclause.append('end<=%s')
+            variables.append(endtime)
+
+        if len(whereclause):
+            query = query + ' where ' + ' and '.join(whereclause)
+
+        # self.cursor = self.conn.cursor()
+        self.conn.execute(query, variables)
+
+        # Complete SC3 data with local data
+        result = self.conn.fetchall()
+        # cursta = self.conn.fetchall()
+
+        if outformat == 'json':
+            cherrypy.response.headers['Content-Type'] = 'application/json'
+
+            return json.dumps(result, default=datetime.datetime.isoformat).encode('utf-8')
+        elif outformat == 'text':
+            cherrypy.response.headers['Content-Type'] = 'text/plain'
+
+            fout = io.StringIO("")
+            writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
+            writer.writeheader()
+            writer.writerows(result)
+            fout.seek(0)
+            cherrypy.response.headers['Content-Type'] = 'text/plain'
+            return fout.read().encode('utf-8')
+        elif outformat == 'xml':
+            cherrypy.response.headers['Content-Type'] = 'application/xml'
+
+            header = """<?xml version="1.0" encoding="utf-8"?>
+  <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+            """
+            footer = """</ns0:routing>"""
+
+            outxml = [header]
+            for sta in result:
+                routetext = """
+ <ns0:route networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*">
+  <ns0:station address="http://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{stastart}" end="{staend}" />
+  <ns0:wfcatalog address="http://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{stastart}" end="{staend}" />
+  <ns0:dataselect address="http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{stastart}" end="{staend}" />
+ </ns0:route>
+ """
+                nc = sta['network']
+                sc = sta['code']
+                ss = sta['start'].isoformat()
+                se = sta['end'].isoformat() if sta['end'] is not None else ''
+                outxml.append(routetext.format(netcode=nc, stacode=sc, stastart=ss, staend=se))
+
+            outxml.append(footer)
+
+            return ''.join(outxml).encode('utf-8')
+
+
+@cherrypy.expose
+@cherrypy.popargs('net')
 class NetworksAPI(object):
     """Object dispatching methods related to networks."""
 
