@@ -451,6 +451,20 @@ class StationsAPI(object):
         whereclause = ['S._parent_oid=N._oid']
         variables = []
         if net is not None:
+            if net[0] in '0123456789XYZ':
+                try:
+                    net, year = net.split('_')
+                except ValueError:
+                    # Send Error 400
+                    messdict = {'code': 0,
+                                'message': 'Wrong network code (%s). Temporary codes must include the start year (e.g. 4C_2011).' % net}
+                    message = json.dumps(messdict)
+                    self.log.error(message)
+                    raise cherrypy.HTTPError(400, message)
+
+                whereclause.append('YEAR(N.start)=%s')
+                variables.append(int(year))
+
             whereclause.append('N.code=%s')
             variables.append(net)
 
