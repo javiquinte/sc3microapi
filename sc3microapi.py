@@ -934,6 +934,7 @@ class SC3MicroApi(object):
         # config.read(os.path.join(here, 'sc3microapi.cfg'))
 
         self.network = NetworksAPI(host, user, password, db)
+        self.station = StationsAPI(host, user, password, db)
         self.virtualnet = VirtualNetsAPI(host, user, password, db)
         self.access = AccessAPI(host, user, password, db)
         self.log = logging.getLogger('SC3MicroAPI')
