@@ -903,6 +903,33 @@ class VirtualNetsAPI(object):
             fout.seek(0)
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return fout.read().encode('utf-8')
+        # FIXME This needs to be done!
+        elif outformat == 'xml':
+            cherrypy.response.headers['Content-Type'] = 'application/xml'
+
+            header = """<?xml version="1.0" encoding="utf-8"?>
+     <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+               """
+            footer = """</ns0:routing>"""
+
+            outxml = [header]
+            for sta in result:
+                routetext = """
+    <ns0:route networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*">
+     <ns0:station address="http://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{stastart}" end="{staend}" />
+     <ns0:wfcatalog address="http://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{stastart}" end="{staend}" />
+     <ns0:dataselect address="http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{stastart}" end="{staend}" />
+    </ns0:route>
+    """
+                nc = sta['network']
+                sc = sta['code']
+                ss = sta['start'].isoformat()
+                se = sta['end'].isoformat() if sta['end'] is not None else ''
+                outxml.append(routetext.format(netcode=nc, stacode=sc, stastart=ss, staend=se))
+
+            outxml.append(footer)
+
+            return ''.join(outxml).encode('utf-8')
 
     @cherrypy.expose
     def stations(self, net, outformat='json', **kwargs):

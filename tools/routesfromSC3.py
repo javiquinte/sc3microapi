@@ -165,6 +165,9 @@ def main():
     for stationroute in elem2:
         elem.append(stationroute)
 
+    # TODO Create the XML output for virtual networks
+    # http://st27dmz.gfz-potsdam.de/sc3microapi/virtualnet/stations/_GEALL/
+
     with open(args.output, 'wb') as fout:
         fout.write(ET.tostring(elem))
 
