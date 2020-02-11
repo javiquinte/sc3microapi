@@ -646,6 +646,12 @@ class NetworksAPI(object):
         whereclause = []
         variables = []
         if net is not None:
+            if net[0] in '0123456789XYZ':
+                net, year = net.split('_')
+
+                whereclause.append('YEAR(start)=%s')
+                variables.append(int(year))
+
             whereclause.append('code=%s')
             variables.append(net)
 
