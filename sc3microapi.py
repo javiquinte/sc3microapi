@@ -452,27 +452,27 @@ class StationsAPI(object):
         whereclause = ['S._parent_oid=N._oid']
         variables = []
         if net is not None:
-            whereclause.append('network=%s')
+            whereclause.append('N.code=%s')
             variables.append(net)
 
         if sta is not None:
-            whereclause.append('code=%s')
+            whereclause.append('S.code=%s')
             variables.append(sta)
 
         if restricted is not None:
-            whereclause.append('restricted=%s')
+            whereclause.append('S.restricted=%s')
             variables.append(restricted)
 
         if archive is not None:
-            whereclause.append('archive=%s')
+            whereclause.append('S.archive=%s')
             variables.append(archive)
 
         if starttime is not None:
-            whereclause.append('start>=%s')
+            whereclause.append('S.start>=%s')
             variables.append(starttime)
 
         if endtime is not None:
-            whereclause.append('end<=%s')
+            whereclause.append('S.end<=%s')
             variables.append(endtime)
 
         if len(whereclause):
