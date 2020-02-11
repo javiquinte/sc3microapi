@@ -449,7 +449,7 @@ class StationsAPI(object):
                   'place', 'country', 'start', 'end', 'restricted']
         # fields.extend(self.extrafields)
 
-        whereclause = ['Station._parent_oid=Network._oid']
+        whereclause = ['S._parent_oid=N._oid']
         variables = []
         if net is not None:
             whereclause.append('archiveNetworkCode=%s')
