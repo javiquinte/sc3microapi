@@ -1001,23 +1001,18 @@ class VirtualNetsAPI(object):
 
             header = """<?xml version="1.0" encoding="utf-8"?>
      <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+     <ns0:vnetwork networkCode="%s">
                """
-            footer = """</ns0:routing>"""
+            footer = """</ns0:vnetwork>\n</ns0:routing>"""
 
-            outxml = [header]
-            for vn in result:
-                vntext = '<ns0:vnetwork networkCode="%s">\n' % vn['code']
-                outxml.append(vntext)
-
-                for stream in vn:
-                    streamtext = '<ns0:stream networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*" start="{starttime}" end="{endtime}" />'
-                    netcode = stream['network']
-                    stacode = stream['station']
-                    starttime = stream['start']
-                    endtime = stream['end']
-                    outxml.append(streamtext.format(netcode=netcode, stacode=stacode, starttime=starttime, endtime=endtime))
-
-                outxml.append('</ns0:vnetwork>\n')
+            outxml = [header % net]
+            for stream in result:
+                streamtext = '<ns0:stream networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*" start="{starttime}" end="{endtime}" />'
+                netcode = stream['network']
+                stacode = stream['station']
+                starttime = stream['start']
+                endtime = stream['end']
+                outxml.append(streamtext.format(netcode=netcode, stacode=stacode, starttime=starttime, endtime=endtime))
 
             outxml.append(footer)
 
