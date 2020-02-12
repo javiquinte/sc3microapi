@@ -1007,7 +1007,7 @@ class VirtualNetsAPI(object):
 
             outxml = [header % net]
             for stream in result:
-                streamtext = '<ns0:stream networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*" start="{starttime}" end="{endtime}" />'
+                streamtext = '<ns0:stream networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*" start="{starttime}" end="{endtime}" />\n'
                 netcode = stream['network']
                 stacode = stream['station']
                 starttime = stream['start']
