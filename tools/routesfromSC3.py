@@ -54,6 +54,8 @@ def main():
                         help='Filter networks by its "archive" attribute. For instance, "GFZ".')
     parser.add_argument('-s', '--shared', type=int, default=None, choices=[0, 1],
                         help='Filter networks by its "shared" attribute')
+    parser.add_argument('--vnets', action='store_true', default=False,
+                        help='Include information of virtual networks')
     parser.add_argument('-l', '--loglevel',
                         help='Verbosity in the output.',
                         choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO',
@@ -66,6 +68,7 @@ def main():
     nets2skip = list()
     priority2 = list()
     stations2add = list()
+    vnets2skip = list()
 
     if args.rules is not None:
         config = configparser.RawConfigParser()
@@ -80,6 +83,9 @@ def main():
 
         if config.has_section('Stations') and 'include' in config.options('Stations'):
             stations2add = [x.strip() for x in config.get('Stations', 'include').split(',')]
+
+        if config.has_section('Virtualnets') and 'skip' in config.options('Virtualnets'):
+            vnets2skip = [x.strip() for x in config.get('Virtualnets', 'skip').split(',')]
 
     # Call the sc3microapi method "networks"
     url = '%s/network/' % args.url
@@ -166,17 +172,21 @@ def main():
     for stationroute in elem2:
         elem.append(stationroute)
 
-    # TODO Create the XML output for virtual networks
-    # http://st27dmz.gfz-potsdam.de/sc3microapi/virtualnet/stations/_GEALL/
-    url = 'http://st27dmz.gfz-potsdam.de/sc3microapi/virtualnet/'
-    r = requests.get(url)
+    if args.vnets:
+        # Create the XML output for virtual networks
+        # http://st27dmz.gfz-potsdam.de/sc3microapi/virtualnet/stations/_GEALL/
+        url = '%s/virtualnet/' % args.url
+        r = requests.get(url)
 
-    vns = json.loads(r.content)
-    for vn in vns:
-        # Retrieve stations in VN
-        r = requests.get(url + 'stations/%s/?outformat=xml' % vn['code'])
-        vnxml = ET.fromstring(r.content)
-        elem.append(vnxml[0])
+        vns = json.loads(r.content)
+        for vn in vns:
+            # Check if the Virtual Netowork must be skipped
+            if vn['code'] in vnets2skip:
+                continue
+            # Retrieve stations in VN
+            r = requests.get(args.url + '/virtualnet/stations/%s/?outformat=xml' % vn['code'])
+            vnxml = ET.fromstring(r.content)
+            elem.append(vnxml[0])
 
     with open(args.output, 'wb') as fout:
         fout.write(ET.tostring(elem))
