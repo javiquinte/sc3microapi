@@ -138,7 +138,6 @@ def main():
                     for route in net:
                         route.set('priority', "2")
 
-
     for netsta in stations2add:
         net, sta = netsta.split('.')
 
