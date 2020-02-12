@@ -30,6 +30,7 @@ import argparse
 import requests
 import xml.etree.ElementTree as ET
 import configparser
+import json
 
 
 def istemporary(net):
@@ -167,6 +168,15 @@ def main():
 
     # TODO Create the XML output for virtual networks
     # http://st27dmz.gfz-potsdam.de/sc3microapi/virtualnet/stations/_GEALL/
+    url = 'http://st27dmz.gfz-potsdam.de/sc3microapi/virtualnet/'
+    r = requests.get(url)
+
+    vns = json.loads(r.content)
+    for vn in vns:
+        # Retrieve stations in VN
+        r = requests.get(url + 'stations/%s/?outformat=xml' % vn['code'])
+        vnxml = ET.fromstring(r.content)
+        elem.append(vnxml[0])
 
     with open(args.output, 'wb') as fout:
         fout.write(ET.tostring(elem))
