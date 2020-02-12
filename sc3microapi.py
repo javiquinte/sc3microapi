@@ -832,7 +832,7 @@ class VirtualNetsAPI(object):
         cherrypy.response.headers['Content-Type'] = 'application/json'
 
         try:
-            if outformat not in ['json', 'text']:
+            if outformat not in ['json', 'text', 'xml']:
                 raise Exception
         except Exception:
             # Send Error 400
