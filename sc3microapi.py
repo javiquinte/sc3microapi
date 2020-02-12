@@ -892,18 +892,20 @@ class VirtualNetsAPI(object):
         # self.cursor = self.conn.cursor()
         self.conn.execute(query, variables)
 
+        # Retrieve all virtual networks
+        result = self.conn.fetchall()
+
         if outformat == 'json':
-            return json.dumps(self.conn.fetchall(),
+            return json.dumps(result,
                               default=datetime.datetime.isoformat).encode('utf-8')
         elif outformat == 'text':
             fout = io.StringIO("")
             writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
             writer.writeheader()
-            writer.writerows(self.conn.fetchall())
+            writer.writerows(result)
             fout.seek(0)
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return fout.read().encode('utf-8')
-        # FIXME This needs to be done!
         elif outformat == 'xml':
             cherrypy.response.headers['Content-Type'] = 'application/xml'
 
@@ -913,19 +915,13 @@ class VirtualNetsAPI(object):
             footer = """</ns0:routing>"""
 
             outxml = [header]
-            for sta in result:
+            for vn in result:
                 routetext = """
-    <ns0:route networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*">
-     <ns0:station address="http://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{stastart}" end="{staend}" />
-     <ns0:wfcatalog address="http://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{stastart}" end="{staend}" />
-     <ns0:dataselect address="http://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{stastart}" end="{staend}" />
-    </ns0:route>
+    <ns0:vnetwork networkCode="{vncode}">
+    </ns0:vnetwork>
     """
-                nc = sta['network']
-                sc = sta['code']
-                ss = sta['start'].isoformat()
-                se = sta['end'].isoformat() if sta['end'] is not None else ''
-                outxml.append(routetext.format(netcode=nc, stacode=sc, stastart=ss, staend=se))
+                vncode = vn['code']
+                outxml.append(routetext.format(vncode=vncode))
 
             outxml.append(footer)
 
@@ -986,17 +982,46 @@ class VirtualNetsAPI(object):
         # self.cursor = self.conn.cursor()
         self.conn.execute(query, variables)
 
+        # Retrieve all VNs
+        result = self.conn.fetchall()
+
         if outformat == 'json':
-            return json.dumps(self.conn.fetchall(),
+            return json.dumps(result,
                               default=datetime.datetime.isoformat).encode('utf-8')
         elif outformat == 'text':
             fout = io.StringIO("")
             writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
             writer.writeheader()
-            writer.writerows(self.conn.fetchall())
+            writer.writerows(result)
             fout.seek(0)
             cherrypy.response.headers['Content-Type'] = 'text/plain'
             return fout.read().encode('utf-8')
+        elif outformat == 'xml':
+            cherrypy.response.headers['Content-Type'] = 'application/xml'
+
+            header = """<?xml version="1.0" encoding="utf-8"?>
+     <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+               """
+            footer = """</ns0:routing>"""
+
+            outxml = [header]
+            for vn in result:
+                vntext = '<ns0:vnetwork networkCode="%s">\n' % vn['code']
+                outxml.append(vntext)
+
+                for stream in vn:
+                    streamtext = '<ns0:stream networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*" start="{starttime}" end="{endtime}" />'
+                    netcode = stream['network']
+                    stacode = stream['station']
+                    starttime = stream['start']
+                    endtime = stream['end']
+                    outxml.append(streamtext.format(netcode=netcode, stacode=stacode, starttime=starttime, endtime=endtime))
+
+                outxml.append('</ns0:vnetwork>\n')
+
+            outxml.append(footer)
+
+            return ''.join(outxml).encode('utf-8')
 
 
 class SC3MicroApi(object):
