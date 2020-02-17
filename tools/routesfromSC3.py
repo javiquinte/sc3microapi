@@ -177,14 +177,14 @@ def main():
         url = '%s/virtualnet/' % args.url
         r = requests.get(url)
 
-        vns = json.loads(r.content)
+        vns = json.loads(r.content.decode('utf-8'))
         for vn in vns:
             # Check if the Virtual Netowork must be skipped
             if vn['code'] in vnets2skip:
                 continue
             # Retrieve stations in VN
             r = requests.get(args.url + '/virtualnet/stations/%s/?outformat=xml' % vn['code'])
-            vnxml = ET.fromstring(r.content)
+            vnxml = ET.fromstring(r.content.decode('utf-8'))
             elem.append(vnxml[0])
 
     with open(args.output, 'wb') as fout:
