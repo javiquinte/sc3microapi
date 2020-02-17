@@ -163,13 +163,13 @@ def main():
             print('Error reading from %s with parameters: %s' % (url, params))
             sys.exit(2)
 
-    # Filter and modify result based in file with rules
+        # Filter and modify result based in file with rules
 
-    # Create the XML for the networks
-    elem2 = ET.fromstring(r.content)
+        # Create the XML for the networks
+        elem2 = ET.fromstring(r.content)
 
-    for stationroute in elem2:
-        elem.append(stationroute)
+        for stationroute in elem2:
+            elem.append(stationroute)
 
     if args.vnets:
         # Create the XML output for virtual networks
