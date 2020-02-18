@@ -1011,7 +1011,11 @@ class VirtualNetsAPI(object):
                 netcode = stream['network']
                 stacode = stream['station']
                 starttime = stream['start']
-                endtime = stream['end']
+                try:
+                    str2date(stream['end'])
+                    endtime = stream['end']
+                except Exception:
+                    endtime = ''
                 outxml.append(streamtext.format(netcode=netcode, stacode=stacode, starttime=starttime, endtime=endtime))
 
             outxml.append(footer)
