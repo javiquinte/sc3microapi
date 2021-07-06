@@ -13,6 +13,22 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 
+
+def read(rel_path):
+    here = path.abspath(path.dirname(__file__))
+    with open(path.join(here, rel_path), 'r') as fp:
+        return fp.read()
+
+
+def get_version(rel_path):
+    for line in read(rel_path).splitlines():
+        if line.startswith('__version__'):
+            delim = '"' if '"' in line else "'"
+            return line.split(delim)[1]
+    else:
+        raise RuntimeError("Unable to find version string.")
+
+
 # Get the long description from the README file
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
@@ -23,7 +39,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.2b1',
+    version=get_version("sc3microapi/__init__.py"),
 
     description='sc3microapi: Web service providing seamless access to information about networks/stations archived in SC3',
     long_description=long_description,
@@ -63,6 +79,8 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Topic :: Scientific/Engineering',
         'Topic :: Database :: Front-Ends'
     ],
