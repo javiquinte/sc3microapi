@@ -68,6 +68,7 @@ def main():
     nets2skip = list()
     priority2 = list()
     stations2add = list()
+    stations2skip = list()
     vnets2skip = list()
 
     if args.rules is not None:
@@ -83,6 +84,9 @@ def main():
 
         if config.has_section('Stations') and 'include' in config.options('Stations'):
             stations2add = [x.strip() for x in config.get('Stations', 'include').split(',')]
+
+        if config.has_section('Stations') and 'skip' in config.options('Stations'):
+            stations2skip = [x.strip() for x in config.get('Stations', 'skip').split(',')]
 
         if config.has_section('Virtualnets') and 'skip' in config.options('Virtualnets'):
             vnets2skip = [x.strip() for x in config.get('Virtualnets', 'skip').split(',')]
@@ -116,27 +120,20 @@ def main():
     
     if len(nets2skip):
         for net in reversed(elem):
-            # Check the case of permanent networks
-            if not istemporary(net.get('networkCode')):
-                if net.get('networkCode') in nets2skip:
-                    elem.remove(net)
-                    continue
-
-                # Check if priority should be set to 2
-                if net.get('networkCode') in priority2:
-                    for route in net:
-                        route.set('priority', "2")
-
-            # And temporary networks
+            # Check the type of network
             if istemporary(net.get('networkCode')):
-                net_start = '%s_%s' % (net.get('networkCode'), net[0].get('start')[:4])
-                if net_start in nets2skip:
-                    elem.remove(net)
+                netcode = '%s_%s' % (net.get('networkCode'), net[0].get('start')[:4])
+            else:
+                netcode = net.get('networkCode')
 
-                # Check if priority should be set to 2
-                if net_start in priority2:
-                    for route in net:
-                        route.set('priority', "2")
+            if netcode in nets2skip:
+                elem.remove(net)
+                continue
+
+            # Check if priority should be set to 2
+            if netcode in priority2:
+                for route in net:
+                    route.set('priority', "2")
 
     for netsta in stations2add:
         net, sta = netsta.split('.')
@@ -165,11 +162,28 @@ def main():
 
         # Filter and modify result based in file with rules
 
-        # Create the XML for the networks
+        # Create the XML for the stations
         elem2 = ET.fromstring(r.content)
 
-        for stationroute in elem2:
-            elem.append(stationroute)
+        for sta in elem2:
+            # Check the type of network and add start year if temporary
+            if istemporary(sta.get('networkCode')):
+                netcode = '%s_%s' % (sta.get('networkCode'), sta[0].get('start')[:4])
+            else:
+                netcode = sta.get('networkCode')
+
+            # Build station code
+            stacode = '%s.%s' % (netcode, sta.get('stationCode'))
+            # Check if this route to a station should be skipped
+            if stacode in stations2skip:
+                continue
+
+            # Check if priority should be set to 2
+            if stacode in priority2:
+                for route in sta:
+                    route.set('priority', "2")
+
+            elem.append(sta)
 
     if args.vnets:
         # Create the XML output for virtual networks
