@@ -39,7 +39,7 @@ def istemporary(net):
 
 def main():
     # Call the sc3microapi method "networks"
-    urlbase = 'http://st27dmz.gfz-potsdam.de/sc3microapi'
+    urlbase = 'http://localhost/sc3microapi'
 
     msg = 'Generate an XML file with routes to be used in a Routing Service.'
     parser = argparse.ArgumentParser(description=msg)

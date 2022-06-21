@@ -1092,7 +1092,7 @@ def main():
     server_config = {
         'global': {
             'tools.proxy.on': True,
-            'server.socket_host': 'st27dmz.gfz-potsdam.de',
+            'server.socket_host': 'localhost',
             'server.socket_port': 7000,
             'engine.autoreload_on': False
         }
