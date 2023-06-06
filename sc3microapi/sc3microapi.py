@@ -547,6 +547,7 @@ class StationsAPI(object):
   <ns0:station address="https://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{stastart}" end="{staend}" />
   <ns0:wfcatalog address="https://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{stastart}" end="{staend}" />
   <ns0:dataselect address="https://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{stastart}" end="{staend}" />
+  <ns0:availability address="https://geofon.gfz-potsdam.de/fdsnws/availability/1/query" priority="1" start="{stastart}" end="{staend}" />
  </ns0:route>
  """
                 nc = sta['network']
@@ -766,6 +767,7 @@ class NetworksAPI(object):
   <ns0:station address="https://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{netstart}" end="{netend}" />
   <ns0:wfcatalog address="https://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{netstart}" end="{netend}" />
   <ns0:dataselect address="https://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{netstart}" end="{netend}" />
+  <ns0:availability address="https://geofon.gfz-potsdam.de/fdsnws/availability/1/query" priority="1" start="{netstart}" end="{netend}" />
  </ns0:route>
  """
                 nc = net['code']
@@ -1063,7 +1065,7 @@ class SC3MicroApi(object):
         :returns: Version of the system
         :rtype: string
         """
-        version = '0.2b1'
+        version = '0.3b1'
         cherrypy.response.headers['Content-Type'] = 'text/plain'
         return version.encode('utf-8')
 
