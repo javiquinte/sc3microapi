@@ -67,6 +67,7 @@ def main():
     # Read networks to skip and stations to add individually from a file with rules
     nets2skip = list()
     priority2 = list()
+    priority3 = list()
     stations2add = list()
     stations2skip = list()
     vnets2skip = list()
@@ -81,6 +82,9 @@ def main():
 
         if config.has_section('Networks') and 'priority2' in config.options('Networks'):
             priority2 = [x.strip() for x in config.get('Networks', 'priority2').split(',')]
+
+        if config.has_section('Networks') and 'priority3' in config.options('Networks'):
+            priority3 = [x.strip() for x in config.get('Networks', 'priority3').split(',')]
 
         if config.has_section('Stations') and 'include' in config.options('Stations'):
             stations2add = [x.strip() for x in config.get('Stations', 'include').split(',')]
@@ -135,6 +139,11 @@ def main():
                 for route in net:
                     route.set('priority', "2")
 
+            # Check if priority should be set to 3
+            if netcode in priority3:
+                for route in net:
+                    route.set('priority', "3")
+
     for netsta in stations2add:
         net, sta = netsta.split('.')
 
@@ -182,6 +191,11 @@ def main():
             if stacode in priority2:
                 for route in sta:
                     route.set('priority', "2")
+
+            # Check if priority should be set to 3
+            if stacode in priority3:
+                for route in sta:
+                    route.set('priority', "3")
 
             elem.append(sta)
 
