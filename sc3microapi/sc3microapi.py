@@ -41,6 +41,9 @@ import logging.config
 from datetime import datetime
 import configparser
 from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse
+
 
 # Define formally parts of the NSLC code
 NetworkCode = constr(strip_whitespace=True, to_upper=True, min_length=2, max_length=2, pattern=r'[A-Z1-9]{2}')
@@ -121,10 +124,8 @@ class SC3dbconnection(object):
 app = FastAPI()
 
 
-@app.get('/')
+@app.get('/', response_class=HTMLResponse)
 def getroot():
-    # cherrypy.response.headers['Content-Type'] = 'text/html'
-
     # TODO Create an HTML page with a minimum documentation for a user
     try:
         with open('help.html') as fin:
@@ -139,7 +140,7 @@ def getroot():
     return texthelp.encode('utf-8')
 
 
-@app.get('/version')
+@app.get('/version', response_class=PlainTextResponse)
 def version():
     """Return the version of this implementation.
 
