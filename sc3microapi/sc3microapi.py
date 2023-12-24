@@ -30,6 +30,10 @@ import cherrypy
 from cherrypy.process import plugins
 import os
 import io
+from pydantic import constr
+from typing import Union
+from typing import Literal
+from sc3microapi import __version__
 import csv
 import json
 import MySQLdb
@@ -120,8 +124,14 @@ LOG_CONF = {
     }
 }
 
+# Define formally parts of the NSLC code
+NetworkCode = constr(strip_whitespace=True, to_upper=True, min_length=2, max_length=2, pattern=r'[A-Z1-9]{2}')
+StationCode = constr(strip_whitespace=True, to_upper=True, min_length=1, max_length=5, pattern=r'[A-Z][A-Z1-9]{0,4}')
+LocationCode = constr(strip_whitespace=True, to_upper=True, max_length=2, pattern=r'[A-Z0-9]{0,2}')
+ChannelCode = constr(strip_whitespace=True, to_upper=True, min_length=3, max_length=3, pattern=r'[A-Z0-9]{3}')
 
-def str2date(dateiso):
+
+def str2date(dateiso: constr(min_length=4, strip_whitespace=True, to_upper=True)) -> Union[datetime, None]:
     """Transform a string to a datetime.
 
     :param dateiso: A datetime in ISO format.
@@ -145,7 +155,7 @@ def str2date(dateiso):
 
 
 class SC3dbconnection(object):
-    def __init__(self, host, user, password, db='seiscomp3'):
+    def __init__(self, host: str, user: str, password: str, db: str = 'seiscomp3'):
         """Constructor of the AccessAPI class."""
         self.host = host
         self.user = user
@@ -187,17 +197,19 @@ class SC3dbconnection(object):
 
         return
 
+
 @cherrypy.expose
 class AccessAPI(object):
     """Object dispatching methods related to access to streams."""
 
-    def __init__(self, host, user, password, db):
+    def __init__(self, host: str, user: str, password: str, db: str):
         """Constructor of the AccessAPI class."""
         # Save connection
         self.conn = SC3dbconnection(host, user, password, db)
         self.log = logging.getLogger('AccessAPI')
 
-    def __access(self, email, net='', sta='', loc='', cha='', starttime=None, endtime=None):
+    def __access(self, email: str, net: NetworkCode = '', sta: StationCode = '', loc: LocationCode = '',
+                 cha: ChannelCode = '', starttime: str = None, endtime: str = None):
         # Check network access
         # self.cursor = self.conn.cursor()
         whereclause = ['networkCode=%s',
@@ -225,7 +237,9 @@ class AccessAPI(object):
         raise Exception('No result querying the DB ({})'.format(query % variables))
 
     @cherrypy.expose
-    def index(self, nslc, email, starttime=None, endtime=None):
+    def index(self, nslc: constr(strip_whitespace=True, to_upper=True),
+              # pattern=r'[A-Z][A-Z1-9]\.[A-Z][A-Z1-9]{0,4}\.[A-Z0-9]{0,2}\.[A-Z0-9]{3}'),
+              email: constr(strip_whitespace=True), starttime: str = None, endtime: str = None) -> bytes:
         """Check if the user has access to a stream.
 
         The output should be empty, because the error code is the real output.
@@ -349,7 +363,7 @@ class AccessAPI(object):
 class StationsAPI(object):
     """Object dispatching methods related to stations."""
 
-    def __init__(self, host, user, password, db):
+    def __init__(self, host: str, user: str, password: str, db: str):
         """Constructor of the StationsAPI class."""
         # Save connection
         self.conn = SC3dbconnection(host, user, password, db)
@@ -365,8 +379,10 @@ class StationsAPI(object):
         # self.stasuppl.read('stations.cfg')
 
     @cherrypy.expose
-    def index(self, net=None, sta=None, outformat='json', restricted=None, archive=None,
-              shared=None, starttime=None, endtime=None, **kwargs):
+    def index(self, net: NetworkCode = None, sta: StationCode = None,
+              outformat: Literal['json', 'text', 'xml'] = 'json', restricted: Literal['0', '1'] = None,
+              archive: str = None, shared: Literal['0', '1'] = None, starttime: str = None, endtime: str = None,
+              **kwargs) -> bytes:
         """List available stations in the system.
 
         :param net: Network code
@@ -400,39 +416,33 @@ class StationsAPI(object):
 
         # Check parameters
         if restricted is not None:
-            try:
-                restricted = int(restricted)
-                if restricted not in [0, 1]:
-                    raise Exception
-            except Exception:
-                # Send Error 400
-                messdict = {'code': 0,
-                            'message': 'Restricted does not seem to be 0 or 1.'}
-                message = json.dumps(messdict)
-                self.log.error(message)
-                raise cherrypy.HTTPError(400, message)
+            restricted = int(restricted)
+            # except Exception:
+            #     # Send Error 400
+            #     messdict = {'code': 0,
+            #                 'message': 'Restricted does not seem to be 0 or 1.'}
+            #     message = json.dumps(messdict)
+            #     self.log.error(message)
+            #     raise cherrypy.HTTPError(400, message)
 
         # Check parameters
         if shared is not None:
-            try:
-                shared = int(shared)
-                if shared not in [0, 1]:
-                    raise Exception
-            except Exception:
-                # Send Error 400
-                messdict = {'code': 0,
-                            'message': 'Shared does not seem to be 0 or 1.'}
-                message = json.dumps(messdict)
-                self.log.error(message)
-                raise cherrypy.HTTPError(400, message)
+            shared = int(shared)
+            # except Exception:
+            #     # Send Error 400
+            #     messdict = {'code': 0,
+            #                 'message': 'Shared does not seem to be 0 or 1.'}
+            #     message = json.dumps(messdict)
+            #     self.log.error(message)
+            #     raise cherrypy.HTTPError(400, message)
 
-        if outformat not in ['json', 'text', 'xml']:
-            # Send Error 400
-            messdict = {'code': 0,
-                        'message': 'Wrong value in the "outformat" parameter.'}
-            message = json.dumps(messdict)
-            self.log.error(message)
-            raise cherrypy.HTTPError(400, message)
+        # if outformat not in ['json', 'text', 'xml']:
+        #     # Send Error 400
+        #     messdict = {'code': 0,
+        #                 'message': 'Wrong value in the "outformat" parameter.'}
+        #     message = json.dumps(messdict)
+        #     self.log.error(message)
+        #     raise cherrypy.HTTPError(400, message)
 
         if starttime is not None:
             try:
@@ -555,9 +565,7 @@ class StationsAPI(object):
                 ss = sta['start'].isoformat()
                 se = sta['end'].isoformat() if sta['end'] is not None else ''
                 outxml.append(routetext.format(netcode=nc, stacode=sc, stastart=ss, staend=se))
-
             outxml.append(footer)
-
             return ''.join(outxml).encode('utf-8')
 
 
@@ -566,7 +574,7 @@ class StationsAPI(object):
 class NetworksAPI(object):
     """Object dispatching methods related to networks."""
 
-    def __init__(self, host, user, password, db):
+    def __init__(self, host: str, user: str, password: str, db: str):
         """Constructor of the NetworksAPI class."""
         # Save connection
         self.conn = SC3dbconnection(host, user, password, db)
@@ -582,8 +590,9 @@ class NetworksAPI(object):
         self.netsuppl.read('networks.cfg')
 
     @cherrypy.expose
-    def index(self, net=None, outformat='json', restricted=None, archive=None,
-              netclass=None, shared=None, starttime=None, endtime=None, **kwargs):
+    def index(self, net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
+              restricted: Literal['0', '1'] = None, archive: str = None, netclass: Literal['p', 't'] = None,
+              shared: Literal['0', '1'] = None, starttime: str = None, endtime: str = None, **kwargs) -> bytes:
         """List available networks in the system.
 
         :param net: Network code
@@ -617,39 +626,33 @@ class NetworksAPI(object):
 
         # Check parameters
         if restricted is not None:
-            try:
-                restricted = int(restricted)
-                if restricted not in [0, 1]:
-                    raise Exception
-            except Exception:
-                # Send Error 400
-                messdict = {'code': 0,
-                            'message': 'Restricted does not seem to be 0 or 1.'}
-                message = json.dumps(messdict)
-                self.log.error(message)
-                raise cherrypy.HTTPError(400, message)
+            restricted = int(restricted)
+            # except Exception:
+            #     # Send Error 400
+            #     messdict = {'code': 0,
+            #                 'message': 'Restricted does not seem to be 0 or 1.'}
+            #     message = json.dumps(messdict)
+            #     self.log.error(message)
+            #     raise cherrypy.HTTPError(400, message)
 
         # Check parameters
         if shared is not None:
-            try:
-                shared = int(shared)
-                if shared not in [0, 1]:
-                    raise Exception
-            except Exception:
-                # Send Error 400
-                messdict = {'code': 0,
-                            'message': 'Shared does not seem to be 0 or 1.'}
-                message = json.dumps(messdict)
-                self.log.error(message)
-                raise cherrypy.HTTPError(400, message)
+            shared = int(shared)
+            # except Exception:
+            #     # Send Error 400
+            #     messdict = {'code': 0,
+            #                 'message': 'Shared does not seem to be 0 or 1.'}
+            #     message = json.dumps(messdict)
+            #     self.log.error(message)
+            #     raise cherrypy.HTTPError(400, message)
 
-        if outformat not in ['json', 'text', 'xml']:
-            # Send Error 400
-            messdict = {'code': 0,
-                        'message': 'Wrong value in the "outformat" parameter.'}
-            message = json.dumps(messdict)
-            self.log.error(message)
-            raise cherrypy.HTTPError(400, message)
+        # if outformat not in ['json', 'text', 'xml']:
+        #     # Send Error 400
+        #     messdict = {'code': 0,
+        #                 'message': 'Wrong value in the "outformat" parameter.'}
+        #     message = json.dumps(messdict)
+        #     self.log.error(message)
+        #     raise cherrypy.HTTPError(400, message)
 
         if starttime is not None:
             try:
@@ -774,9 +777,7 @@ class NetworksAPI(object):
                 ns = net['start'].isoformat()
                 ne = net['end'].isoformat() if net['end'] is not None else ''
                 outxml.append(routetext.format(netcode=nc, netstart=ns, netend=ne))
-
             outxml.append(footer)
-
             return ''.join(outxml).encode('utf-8')
 
         # except:
@@ -793,7 +794,7 @@ class NetworksAPI(object):
 class VirtualNetsAPI(object):
     """Object dispatching methods related to virtual networks."""
 
-    def __init__(self, host, user, password, db):
+    def __init__(self, host: str, user: str, password: str, db: str):
         """Constructor of the NetworksAPI class."""
         # Save connection
         self.conn = SC3dbconnection(host, user, password, db)
@@ -804,8 +805,8 @@ class VirtualNetsAPI(object):
         cfgfile.read('sc3microapi.cfg')
 
     @cherrypy.expose
-    def index(self, net=None, outformat='json', typevn=None,
-              starttime=None, endtime=None, **kwargs):
+    def index(self, net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
+              typevn: str = None, starttime: str = None, endtime: str = None, **kwargs) -> bytes:
         """List available networks in the system.
 
         :param net: Network code
@@ -833,16 +834,16 @@ class VirtualNetsAPI(object):
 
         cherrypy.response.headers['Content-Type'] = 'application/json'
 
-        try:
-            if outformat not in ['json', 'text', 'xml']:
-                raise Exception
-        except Exception:
-            # Send Error 400
-            messdict = {'code': 0,
-                        'message': 'Wrong value in the "outformat" parameter.'}
-            message = json.dumps(messdict)
-            self.log.error(message)
-            raise cherrypy.HTTPError(400, message)
+        # try:
+        #     if outformat not in ['json', 'text', 'xml']:
+        #         raise Exception
+        # except Exception:
+        #     # Send Error 400
+        #     messdict = {'code': 0,
+        #                 'message': 'Wrong value in the "outformat" parameter.'}
+        #     message = json.dumps(messdict)
+        #     self.log.error(message)
+        #     raise cherrypy.HTTPError(400, message)
 
         if starttime is not None:
             try:
@@ -924,18 +925,16 @@ class VirtualNetsAPI(object):
     """
                 vncode = vn['code']
                 outxml.append(routetext.format(vncode=vncode))
-
             outxml.append(footer)
-
             return ''.join(outxml).encode('utf-8')
 
     @cherrypy.expose
-    def stations(self, net, outformat='json', **kwargs):
+    def stations(self, net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'json', **kwargs) -> bytes:
         """List available networks in the system.
 
         :param net: Network code
         :type net: str
-        :param outformat: Output format (json, text)
+        :param outformat: Output format (json, text, xml)
         :type outformat: str
         :returns: List of stations in the virtual network.
         :rtype: utf-8 encoded string
@@ -952,16 +951,16 @@ class VirtualNetsAPI(object):
 
         cherrypy.response.headers['Content-Type'] = 'application/json'
 
-        try:
-            if outformat not in ['json', 'text', 'xml']:
-                raise Exception
-        except Exception:
-            # Send Error 400
-            messdict = {'code': 0,
-                        'message': 'Wrong value in the "outformat" parameter.'}
-            message = json.dumps(messdict)
-            self.log.error(message)
-            raise cherrypy.HTTPError(400, message)
+        # try:
+        #     if outformat not in ['json', 'text', 'xml']:
+        #         raise Exception
+        # except Exception:
+        #     # Send Error 400
+        #     messdict = {'code': 0,
+        #                 'message': 'Wrong value in the "outformat" parameter.'}
+        #     message = json.dumps(messdict)
+        #     self.log.error(message)
+        #     raise cherrypy.HTTPError(400, message)
 
         # try:
         query = 'select ne.code as network, st.code as station, st.start as start, st.end as end ' + \
@@ -1019,16 +1018,14 @@ class VirtualNetsAPI(object):
                 except Exception:
                     endtime = ''
                 outxml.append(streamtext.format(netcode=netcode, stacode=stacode, starttime=starttime, endtime=endtime))
-
             outxml.append(footer)
-
             return ''.join(outxml).encode('utf-8')
 
 
 class SC3MicroApi(object):
     """Main class including the dispatcher."""
 
-    def __init__(self, host, user, password, db):
+    def __init__(self, host: str, user: str, password: str, db: str):
         """Constructor of the SC3MicroApi object."""
         # config = configparser.RawConfigParser()
         # here = os.path.dirname(__file__)
@@ -1041,7 +1038,7 @@ class SC3MicroApi(object):
         self.log = logging.getLogger('SC3MicroAPI')
 
     @cherrypy.expose
-    def index(self):
+    def index(self) -> bytes:
         cherrypy.response.headers['Content-Type'] = 'text/html'
 
         # TODO Create an HTML page with a minimum documentation for a user
@@ -1055,17 +1052,16 @@ class SC3MicroApi(object):
                               Default help for the sc3microapi service (GEOFON).
                             </body>
                           </html>"""
-
         return texthelp.encode('utf-8')
 
     @cherrypy.expose
-    def version(self):
+    def version(self) -> bytes:
         """Return the version of this implementation.
 
         :returns: Version of the system
         :rtype: string
         """
-        version = '0.3b1'
+        version = __version__
         cherrypy.response.headers['Content-Type'] = 'text/plain'
         return version.encode('utf-8')
 
