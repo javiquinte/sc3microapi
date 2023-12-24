@@ -15,16 +15,36 @@ Installation
 
 The code is hosted in the following repository: https://github.com/javiquinte/sc3microapi.git
 
-To get the code and deploy it you can execute the following commands: ::
+Requirements
+------------
+Some libraries external to the python environment are needed for this to work. For instance,
+the MySQL client libraries. If you are installing this on an Ubuntu distribution, just run ::
+
+   $ apt install python3-dev default-libmysqlclient-dev build-essential
+
+If you want to deploy it in a Mac ::
+
+   $ # Assume you are activating Python 3 venv
+   $ brew install mysql-client pkg-config
+   $ export PKG_CONFIG_PATH="$(brew --prefix)/opt/mysql-client/lib/pkgconfig"
+
+Recommended installation (Pypi)
+-------------------------------
+
+The easiest way to install sc3microapi is through pip. ::
+
+  $ pip sc3microapi
+
+That was easy! :-)
+
+Installing from the sources
+---------------------------
+
+To get the code and install it you have to execute the following commands: ::
 
   git clone https://github.com/javiquinte/sc3microapi.git
   cd sc3microapi
   cp sc3microapi.cfg.sample sc3microapi.cfg
-
-In order to run `sc3microapi` you will need a recent version of `python3` and the `cherrypy` package.
-The latter can be easily installed with pip. ::
-
-  pip3 cherrypy
 
 Using Apache to proxy the requests
 ==================================
