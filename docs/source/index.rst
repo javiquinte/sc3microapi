@@ -18,9 +18,13 @@ The code is hosted in the following repository: https://github.com/javiquinte/sc
 Requirements
 ------------
 Some libraries external to the python environment are needed for this to work. For instance,
-the MySQL client libraries. If you are installing this on an Ubuntu distribution, just run ::
+the MySQL client libraries. If you are installing this on a Debian/Ubuntu distribution, just run ::
 
-   $ apt install python3-dev default-libmysqlclient-dev build-essential
+   $ sudo apt-get install python3-dev default-libmysqlclient-dev build-essential pkg-config
+
+For other type if distributions like Redhat/CentOS run ::
+
+   $ sudo yum install python3-devel mysql-devel pkgconfig
 
 If you want to deploy it in a Mac ::
 
@@ -35,7 +39,7 @@ The easiest way to install sc3microapi is through pip. ::
 
   $ pip sc3microapi
 
-That was easy! :-)
+That was easy, hey! :-)
 
 Installing from the sources
 ---------------------------
