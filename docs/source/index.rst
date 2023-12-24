@@ -56,5 +56,5 @@ Starting the service
 
 Once the application has been deployed it can be started by means of the following command: ::
 
-  python3 ./sc3microapi
+  $ python -m uvicorn sc3microapi:app --reload
 
