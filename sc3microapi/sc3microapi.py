@@ -31,14 +31,14 @@ import io
 from pydantic import constr
 from typing import Union
 from typing import Literal
-from sc3microapi import __version__
+# from sc3microapi import __version__
 import csv
 import json
-import MySQLdb
-from MySQLdb.cursors import DictCursor
+# import MySQLdb
+# from MySQLdb.cursors import DictCursor
 import logging
 import logging.config
-import datetime
+from datetime import datetime
 import configparser
 from fastapi import FastAPI
 
@@ -47,6 +47,8 @@ NetworkCode = constr(strip_whitespace=True, to_upper=True, min_length=2, max_len
 StationCode = constr(strip_whitespace=True, to_upper=True, min_length=1, max_length=5, pattern=r'[A-Z][A-Z1-9]{0,4}')
 LocationCode = constr(strip_whitespace=True, to_upper=True, max_length=2, pattern=r'[A-Z0-9]{0,2}')
 ChannelCode = constr(strip_whitespace=True, to_upper=True, min_length=3, max_length=3, pattern=r'[A-Z0-9]{3}')
+
+__version__ = '0.4a1'
 
 
 def str2date(dateiso: constr(min_length=4, strip_whitespace=True, to_upper=True)) -> Union[datetime, None]:
