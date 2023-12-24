@@ -34,8 +34,8 @@ from typing import Literal
 # from sc3microapi import __version__
 import csv
 import json
-# import MySQLdb
-# from MySQLdb.cursors import DictCursor
+import MySQLdb
+from MySQLdb.cursors import DictCursor
 import logging
 import logging.config
 from datetime import datetime
