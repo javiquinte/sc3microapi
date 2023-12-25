@@ -38,7 +38,7 @@ from typing import Literal
 from typing import List
 # from sc3microapi import __version__
 import csv
-import json
+from core import NetworkCode
 import MySQLdb
 from MySQLdb.cursors import DictCursor
 import logging
@@ -55,7 +55,7 @@ from core import Network
 
 
 # Define formally parts of the NSLC code
-NetworkCode = constr(strip_whitespace=True, to_upper=True, min_length=2, max_length=7)
+# NetworkCode = constr(strip_whitespace=True, to_upper=True, min_length=2, max_length=7)
 StationCode = constr(strip_whitespace=True, to_upper=True, min_length=1, max_length=5, pattern=r'[A-Z][A-Z1-9]{0,4}')
 LocationCode = constr(strip_whitespace=True, to_upper=True, max_length=2, pattern=r'[A-Z0-9]{0,2}')
 ChannelCode = constr(strip_whitespace=True, to_upper=True, min_length=3, max_length=3, pattern=r'[A-Z0-9]{3}')
@@ -226,12 +226,11 @@ else:
 app = FastAPI()
 
 
-@app.get('/network/{net}')
-def index(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
-          restricted: conint(ge=0, le=1) = None, archive: str = None, netclass: Literal['p', 't'] = None,
-          shared: conint(ge=0, le=1) = None, starttime: str = None,
-          endtime: str = None):
-    #  -> Union[JSONResponse, PlainTextResponse, Response]
+# This is needed to capture both cases of the "network" method (with and without network code)
+def basenetwork(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
+                restricted: conint(ge=0, le=1) = None, archive: str = None, netclass: Literal['p', 't'] = None,
+                shared: conint(ge=0, le=1) = None, starttime: str = None,
+                endtime: str = None):
     """List available networks in the system.
 
     :param net: Network code
@@ -277,7 +276,6 @@ def index(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = '
     result = conn.getnetworks(net, restricted, archive, netclass, shared, starttime, endtime)
 
     if outformat == 'json':
-        print(result[0].model_dump_json())
         return JSONResponse(content=jsonable_encoder(result), status_code=200)
     elif outformat == 'text':
         fout = io.StringIO("")
@@ -292,26 +290,66 @@ def index(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = '
         return PlainTextResponse(fout.read())
     elif outformat == 'xml':
         header = """<?xml version="1.0" encoding="utf-8"?>
-<ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
-        """
+    <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+            """
         footer = """</ns0:routing>"""
 
         outxml = [header]
         for net in result:
             routetext = """
-<ns0:route networkCode="{netcode}" stationCode="*" locationCode="*" streamCode="*">
-<ns0:station address="https://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{netstart}" end="{netend}" />
-<ns0:wfcatalog address="https://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{netstart}" end="{netend}" />
-<ns0:dataselect address="https://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{netstart}" end="{netend}" />
-<ns0:availability address="https://geofon.gfz-potsdam.de/fdsnws/availability/1/query" priority="1" start="{netstart}" end="{netend}" />
-</ns0:route>
-"""
-            nc = net['code']
-            ns = net['start'].isoformat()
-            ne = net['end'].isoformat() if net['end'] is not None else ''
+    <ns0:route networkCode="{netcode}" stationCode="*" locationCode="*" streamCode="*">
+    <ns0:station address="https://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{netstart}" end="{netend}" />
+    <ns0:wfcatalog address="https://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{netstart}" end="{netend}" />
+    <ns0:dataselect address="https://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{netstart}" end="{netend}" />
+    <ns0:availability address="https://geofon.gfz-potsdam.de/fdsnws/availability/1/query" priority="1" start="{netstart}" end="{netend}" />
+    </ns0:route>
+    """
+            nc = net.code
+            ns = net.start.isoformat()
+            ne = net.end.isoformat() if net.end is not None else ''
             outxml.append(routetext.format(netcode=nc, netstart=ns, netend=ne))
         outxml.append(footer)
         return Response(content=''.join(outxml), media_type="application/xml")
+
+
+@app.get('/network/{net}')
+def index(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
+          restricted: conint(ge=0, le=1) = None, archive: str = None, netclass: Literal['p', 't'] = None,
+          shared: conint(ge=0, le=1) = None, starttime: str = None,
+          endtime: str = None):
+    #  -> Union[JSONResponse, PlainTextResponse, Response]
+    """List available networks in the system.
+
+    :param net: Network code
+    :type net: str
+    :param outformat: Output format (json, text, xml)
+    :type outformat: str
+    :param restricted: Restricted status of the Network ('0' or '1')
+    :type restricted: str
+    :param archive: Institution archiving the network
+    :type archive: str
+    :param netclass: Tpye of network (permanent 'p' or temporary 't')
+    :type netclass: str
+    :param shared: Is the network shared with EIDA? ('0' or '1')
+    :type shared: str
+    :param starttime: Start time in isoformat
+    :type starttime: str
+    :param endtime: End time in isoformat
+    :type endtime: str
+    :returns: Data related to the available networks.
+    :rtype: utf-8 encoded string
+    :raises: cherrypy.HTTPError
+    """
+    return basenetwork(net, outformat, restricted, archive, netclass, shared, starttime, endtime)
+
+
+@app.get('/network')
+def index(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
+          restricted: conint(ge=0, le=1) = None, archive: str = None, netclass: Literal['p', 't'] = None,
+          shared: conint(ge=0, le=1) = None, starttime: str = None,
+          endtime: str = None):
+    #  -> Union[JSONResponse, PlainTextResponse, Response]
+    return basenetwork(net, outformat, restricted, archive, netclass, shared, starttime, endtime)
 
 #         if net is not None:
 #             if net[0] in '0123456789XYZ':
