@@ -46,7 +46,7 @@ from fastapi.responses import HTMLResponse
 
 
 # Define formally parts of the NSLC code
-NetworkCode = constr(strip_whitespace=True, to_upper=True, min_length=2, max_length=2, pattern=r'[A-Z1-9]{2}')
+NetworkCode = constr(strip_whitespace=True, to_upper=True, min_length=2, max_length=7)
 StationCode = constr(strip_whitespace=True, to_upper=True, min_length=1, max_length=5, pattern=r'[A-Z][A-Z1-9]{0,4}')
 LocationCode = constr(strip_whitespace=True, to_upper=True, max_length=2, pattern=r'[A-Z0-9]{0,2}')
 ChannelCode = constr(strip_whitespace=True, to_upper=True, min_length=3, max_length=3, pattern=r'[A-Z0-9]{3}')
@@ -70,7 +70,7 @@ def str2date(dateiso: constr(min_length=4, strip_whitespace=True, to_upper=True)
         dateparts = dateiso.replace('-', ' ').replace('T', ' ')
         dateparts = dateparts.replace(':', ' ').replace('.', ' ')
         dateparts = dateparts.replace('Z', '').split()
-        result = datetime.datetime(*map(int, dateparts))
+        result = datetime(*map(int, dateparts))
     except Exception:
         raise ValueError('{} could not be parsed as datetime.'.format(dateiso))
 
