@@ -28,9 +28,14 @@
 
 import os
 import io
+from abc import ABC
+from abc import abstractmethod
 from pydantic import constr
+from pydantic import conint
+from fastapi.encoders import jsonable_encoder
 from typing import Union
 from typing import Literal
+from typing import List
 # from sc3microapi import __version__
 import csv
 import json
@@ -42,7 +47,11 @@ from datetime import datetime
 import configparser
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
+from fastapi.responses import Response
 from fastapi.responses import HTMLResponse
+from fastapi.responses import JSONResponse
+from fastapi import HTTPException
+from core import Network
 
 
 # Define formally parts of the NSLC code
@@ -77,9 +86,88 @@ def str2date(dateiso: constr(min_length=4, strip_whitespace=True, to_upper=True)
     return result
 
 
-class SC3dbconnection(object):
+class GenericConnection(ABC):
+    @abstractmethod
+    def getnetworks(self, net: Union[NetworkCode, None], restricted: conint(ge=0, le=1) = None,
+                    archive: str = None, netclass: Literal['p', 't'] = None,
+                    shared: conint(ge=0, le=1) = None, starttime: str = None, endtime: str = None) -> List[Network]:
+        pass
+
+
+class TestConnection(GenericConnection):
+    def getnetworks(self, net: Union[NetworkCode, None], restricted: conint(ge=0, le=1) = None,
+                    archive: str = None, netclass: Literal['p', 't'] = None,
+                    shared: conint(ge=0, le=1) = None, starttime: str = None, endtime: str = None) -> List[Network]:
+        """Get networks from the DB"""
+
+        query = 'select code, start, end, netClass, archive, restricted, shared from Network'
+        fields = ['code', 'start', 'end', 'netClass', 'archive', 'restricted', 'shared']
+        # fields.extend(self.extrafields)
+
+        whereclause = []
+        variables = []
+        if net is not None:
+            result = [Network(**{'code': net, 'start': datetime(2020, 1, 1),
+                                 'end': None, 'netClass': 'p', 'archive': 'GFZ', 'restricted': 0, 'shared': 1})]
+            if net[0] in '0123456789XYZ':
+                try:
+                    net, year = net.split('_')
+                except ValueError:
+                    # Send Error 400
+                    errmsg = 'Wrong network code (%s). Temporary codes must include the start year (e.g. 4C_2011).'
+                    raise HTTPException(status_code=400,
+                                        detail=errmsg % net)
+
+                whereclause.append('YEAR(start)=%s')
+                variables.append(int(year))
+
+            whereclause.append('code=%s')
+            variables.append(net)
+        else:
+            result = [Network(**{'code': 'GE', 'start': datetime(2020, 1, 1), 'end': None,
+                                 'netClass': 'p', 'archive': 'GFZ', 'restricted': 0, 'shared': 1}),
+                      Network(**{'code': '4C_2018', 'start': datetime(2018, 1, 1),
+                                 'end': datetime(2019, 12, 31), 'netClass': 't', 'archive': 'GFZ',
+                                 'restricted': 1, 'shared': 0})]
+
+        if restricted is not None:
+            whereclause.append('restricted=%s')
+            variables.append(restricted)
+
+        if archive is not None:
+            whereclause.append('archive=%s')
+            variables.append(archive)
+
+        if netclass is not None:
+            whereclause.append('netClass=%s')
+            variables.append(netclass)
+
+        if shared is not None:
+            whereclause.append('shared=%s')
+            variables.append(shared)
+
+        if starttime is not None:
+            whereclause.append('start>=%s')
+            variables.append(starttime)
+
+        if endtime is not None:
+            whereclause.append('end<=%s')
+            variables.append(endtime)
+
+        if len(whereclause):
+            query = query + ' where ' + ' and '.join(whereclause)
+
+        logging.debug(query % variables)
+        return result
+
+
+class SC3dbconnection(GenericConnection):
     def __init__(self, host: str, user: str, password: str, db: str = 'seiscomp3'):
-        """Constructor of the AccessAPI class."""
+        """Constructor of the AccessAPI class.
+
+        If db='test' there will be no real connection to a database, but a simulated connection
+        returning random data to be used in tests.
+        """
         self.host = host
         self.user = user
         self.password = password
@@ -94,6 +182,11 @@ class SC3dbconnection(object):
         # Save connection
         self.conn = MySQLdb.connect(self.host, self.user, self.password,
                                     self.db, cursorclass=DictCursor)
+
+    def getnetworks(self, net: Union[NetworkCode, None], restricted: conint(ge=0, le=1) = None,
+                    archive: str = None, netclass: Literal['p', 't'] = None,
+                    shared: conint(ge=0, le=1) = None, starttime: str = None, endtime: str = None) -> List[Network]:
+        pass
 
     def fetchone(self):
         if self.cursor is None:
@@ -121,7 +214,134 @@ class SC3dbconnection(object):
         return
 
 
+# Get extra fields from the cfg file
+cfgfile = configparser.RawConfigParser()
+cfgfile.read('sc3microapi.cfg')
+
+if cfgfile.get('mysql', 'db') == 'test':
+    conn = TestConnection()
+else:
+    conn = SC3dbconnection(cfgfile.get('mysql', 'host'), cfgfile.get('mysql', 'user'),
+                           cfgfile.get('mysql', 'password'), cfgfile.get('mysql', 'db'))
 app = FastAPI()
+
+
+@app.get('/network/{net}')
+def index(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
+          restricted: conint(ge=0, le=1) = None, archive: str = None, netclass: Literal['p', 't'] = None,
+          shared: conint(ge=0, le=1) = None, starttime: str = None,
+          endtime: str = None):
+    #  -> Union[JSONResponse, PlainTextResponse, Response]
+    """List available networks in the system.
+
+    :param net: Network code
+    :type net: str
+    :param outformat: Output format (json, text, xml)
+    :type outformat: str
+    :param restricted: Restricted status of the Network ('0' or '1')
+    :type restricted: str
+    :param archive: Institution archiving the network
+    :type archive: str
+    :param netclass: Tpye of network (permanent 'p' or temporary 't')
+    :type netclass: str
+    :param shared: Is the network shared with EIDA? ('0' or '1')
+    :type shared: str
+    :param starttime: Start time in isoformat
+    :type starttime: str
+    :param endtime: End time in isoformat
+    :type endtime: str
+    :returns: Data related to the available networks.
+    :rtype: utf-8 encoded string
+    :raises: cherrypy.HTTPError
+    """
+
+    auxextrafields = cfgfile.get('Service', 'network', fallback='')
+    extrafields = auxextrafields.split(',') if len(auxextrafields) else []
+    netsuppl = configparser.RawConfigParser()
+    netsuppl.read('networks.cfg')
+
+    if starttime is not None:
+        try:
+            str2date(starttime)
+        except Exception:
+            # Send Error 400
+            raise HTTPException(status_code=400, detail='Error converting the "starttime" parameter (%s).' % starttime)
+
+    if endtime is not None:
+        try:
+            str2date(endtime)
+        except Exception:
+            # Send Error 400
+            raise HTTPException(status_code=400, detail='Error converting the "endtime" parameter (%s).' % endtime)
+
+    result = conn.getnetworks(net, restricted, archive, netclass, shared, starttime, endtime)
+
+    if outformat == 'json':
+        print(result[0].model_dump_json())
+        return JSONResponse(content=jsonable_encoder(result), status_code=200)
+    elif outformat == 'text':
+        fout = io.StringIO("")
+        try:
+            writer = csv.DictWriter(fout, fieldnames=result[0].keys(), delimiter='|')
+            writer.writeheader()
+            writer.writerows(result)
+        except IndexError:
+            return PlainTextResponse('', status_code=204)
+
+        fout.seek(0)
+        return PlainTextResponse(fout.read())
+    elif outformat == 'xml':
+        header = """<?xml version="1.0" encoding="utf-8"?>
+<ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+        """
+        footer = """</ns0:routing>"""
+
+        outxml = [header]
+        for net in result:
+            routetext = """
+<ns0:route networkCode="{netcode}" stationCode="*" locationCode="*" streamCode="*">
+<ns0:station address="https://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{netstart}" end="{netend}" />
+<ns0:wfcatalog address="https://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{netstart}" end="{netend}" />
+<ns0:dataselect address="https://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{netstart}" end="{netend}" />
+<ns0:availability address="https://geofon.gfz-potsdam.de/fdsnws/availability/1/query" priority="1" start="{netstart}" end="{netend}" />
+</ns0:route>
+"""
+            nc = net['code']
+            ns = net['start'].isoformat()
+            ne = net['end'].isoformat() if net['end'] is not None else ''
+            outxml.append(routetext.format(netcode=nc, netstart=ns, netend=ne))
+        outxml.append(footer)
+        return Response(content=''.join(outxml), media_type="application/xml")
+
+#         if net is not None:
+#             if net[0] in '0123456789XYZ':
+#                 try:
+#                     net, year = net.split('_')
+#                 except ValueError:
+#                     # Send Error 400
+#                     messdict = {'code': 0,
+#                                 'message': 'Wrong network code (%s). Temporary codes must include the start year (e.g. 4C_2011).' % net}
+#                     message = json.dumps(messdict)
+#                     self.log.error(message)
+#                     raise cherrypy.HTTPError(400, message)
+#
+#                 whereclause.append('YEAR(start)=%s')
+#                 variables.append(int(year))
+#
+#             whereclause.append('code=%s')
+#             variables.append(net)
+#
+#
+#         # Complete SC3 data with local data
+#         result = []
+#         curnet = self.conn.fetchone()
+#         while curnet:
+#             for field in self.extrafields:
+#                 curnet[field] = self.netsuppl.get(curnet['code'] + '-' + str(curnet['start'].year),
+#                                                   field, fallback=None)
+#             result.append(curnet)
+#             curnet = self.conn.fetchone()
+#
 
 
 @app.get('/', response_class=HTMLResponse)
@@ -972,50 +1192,6 @@ def version():
 #                 outxml.append(streamtext.format(netcode=netcode, stacode=stacode, starttime=starttime, endtime=endtime))
 #             outxml.append(footer)
 #             return ''.join(outxml).encode('utf-8')
-#
-#
-# class SC3MicroApi(object):
-#     """Main class including the dispatcher."""
-#
-#     def __init__(self, host: str, user: str, password: str, db: str):
-#         """Constructor of the SC3MicroApi object."""
-#         # config = configparser.RawConfigParser()
-#         # here = os.path.dirname(__file__)
-#         # config.read(os.path.join(here, 'sc3microapi.cfg'))
-#
-#         self.network = NetworksAPI(host, user, password, db)
-#         self.station = StationsAPI(host, user, password, db)
-#         self.virtualnet = VirtualNetsAPI(host, user, password, db)
-#         self.access = AccessAPI(host, user, password, db)
-#         self.log = logging.getLogger('SC3MicroAPI')
-#
-#     @cherrypy.expose
-#     def index(self) -> bytes:
-#         cherrypy.response.headers['Content-Type'] = 'text/html'
-#
-#         # TODO Create an HTML page with a minimum documentation for a user
-#         try:
-#             with open('help.html') as fin:
-#                 texthelp = fin.read()
-#         except FileNotFoundError:
-#             texthelp = """<html>
-#                             <head>sc3microapi</head>
-#                             <body>
-#                               Default help for the sc3microapi service (GEOFON).
-#                             </body>
-#                           </html>"""
-#         return texthelp.encode('utf-8')
-#
-#     @cherrypy.expose
-#     def version(self) -> bytes:
-#         """Return the version of this implementation.
-#
-#         :returns: Version of the system
-#         :rtype: string
-#         """
-#         version = __version__
-#         cherrypy.response.headers['Content-Type'] = 'text/plain'
-#         return version.encode('utf-8')
 
 
 # def main():
@@ -1038,21 +1214,3 @@ def version():
 #             'engine.autoreload_on': False
 #         }
 #     }
-#     # Update the global CherryPy configuration
-#     cherrypy.config.update(server_config)
-#     cherrypy.tree.mount(SC3MicroApi(host, user, password, db), '/sc3microapi')
-#
-#     plugins.Daemonizer(cherrypy.engine).subscribe()
-#     if hasattr(cherrypy.engine, 'signal_handler'):
-#         cherrypy.engine.signal_handler.subscribe()
-#     if hasattr(cherrypy.engine, 'console_control_handler'):
-#         cherrypy.engine.console_control_handler.subscribe()
-#
-#     # Always start the engine; this will start all other services
-#     try:
-#         cherrypy.engine.start()
-#     except Exception:
-#         # Assume the error has been logged already via bus.log.
-#         raise
-#     else:
-#         cherrypy.engine.block()
