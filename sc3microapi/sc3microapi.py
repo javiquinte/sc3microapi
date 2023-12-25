@@ -280,9 +280,9 @@ def basenetwork(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml
     elif outformat == 'text':
         fout = io.StringIO("")
         try:
-            writer = csv.DictWriter(fout, fieldnames=result[0].keys(), delimiter='|')
+            writer = csv.DictWriter(fout, fieldnames=result[0].model_dump().keys(), delimiter='|')
             writer.writeheader()
-            writer.writerows(result)
+            writer.writerows(jsonable_encoder(result))
         except IndexError:
             return PlainTextResponse('', status_code=204)
 
