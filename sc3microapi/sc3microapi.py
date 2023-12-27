@@ -314,6 +314,41 @@ def basestation(net: NetworkCode, sta: StationCode = None, outformat: Literal['t
         outxml.append(footer)
         return Response(content=''.join(outxml), media_type="application/xml")
 
+
+@app.get('/station/{net}/{sta}', summary='Get a station', tags=['Station'])
+def getstation(net: NetworkCode, sta: StationCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
+               restricted: Literal[0, 1] = None, shared: Literal[0, 1] = None, starttime: Union[datetime, date] = None,
+               endtime: Union[datetime, date] = None):
+    #  -> Union[JSONResponse, PlainTextResponse, Response]
+    """Get information about one station in particular
+
+    - **net**: Network code
+    - **sta**: Station code
+    - **outformat**: Output format (json, text, xml)
+    - **restricted**: Restricted status of the Network (0 or 1)
+    - **shared**: Is the network shared with EIDA? (0 or 1)
+    - **starttime**: Start time in isoformat
+    - **endtime**: End time in isoformat
+    """
+    return basestation(net, sta, outformat, restricted, shared, starttime, endtime)
+
+
+@app.get('/station/{net}', summary='Get list of stations', tags=['Station'])
+def getstations(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'json',
+               restricted: Literal[0, 1] = None, shared: Literal[0, 1] = None, starttime: Union[datetime, date] = None,
+               endtime: Union[datetime, date] = None):
+    #  -> Union[JSONResponse, PlainTextResponse, Response]
+    """Get information about one station in particular
+
+    - **net**: Network code
+    - **outformat**: Output format (json, text, xml)
+    - **restricted**: Restricted status of the Network (0 or 1)
+    - **shared**: Is the network shared with EIDA? (0 or 1)
+    - **starttime**: Start time in isoformat
+    - **endtime**: End time in isoformat
+    """
+    return basestation(net, None, outformat, restricted, shared, starttime, endtime)
+
 # @cherrypy.expose
 # class AccessAPI(object):
 #     """Object dispatching methods related to access to streams."""
