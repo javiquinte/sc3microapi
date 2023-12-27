@@ -204,14 +204,13 @@ def basenetwork(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml
 
 
 @app.get('/network', summary='List networks', tags=['Network'])
-def getnetworks(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
+def getnetworks(outformat: Literal['text', 'json', 'xml'] = 'json',
                 restricted: Literal[0, 1] = None, archive: str = None, netclass: Literal['p', 't'] = None,
                 shared: Literal[0, 1] = None, starttime: Union[datetime, date] = None,
                 endtime: Union[datetime, date] = None):
     #  -> Union[JSONResponse, PlainTextResponse, Response]
     """Get information about many networks based on the filters requested
 
-    - **net**: Network code
     - **outformat**: Output format (json, text, xml)
     - **restricted**: Restricted status of the Network (0 or 1)
     - **archive**: Institution archiving the network
@@ -220,7 +219,7 @@ def getnetworks(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml
     - **starttime**: Start time in isoformat
     - **endtime**: End time in isoformat
     """
-    return basenetwork(net, outformat, restricted, archive, netclass, shared, starttime, endtime)
+    return basenetwork(None, outformat, restricted, archive, netclass, shared, starttime, endtime)
 
 
 @app.get('/network/{net}', summary='Get a network', tags=['Network'])
