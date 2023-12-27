@@ -45,6 +45,7 @@ from fastapi.responses import Response
 from fastapi.responses import HTMLResponse
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi import HTTPException
 
 
 # Define formally parts of the NSLC code
@@ -91,6 +92,7 @@ else:
 app = FastAPI()
 
 
+# The HTTP error in case of validation errors should be 400
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc: Exception):
     errstr = io.StringIO("")
@@ -239,26 +241,6 @@ def getnetwork(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'js
     - **endtime**: End time in isoformat
     """
     return basenetwork(net, outformat, restricted, archive, netclass, shared, starttime, endtime)
-
-
-#         if net is not None:
-#             if net[0] in '0123456789XYZ':
-#                 try:
-#                     net, year = net.split('_')
-#                 except ValueError:
-#                     # Send Error 400
-#                     messdict = {'code': 0,
-#                                 'message': 'Wrong network code (%s). Temporary codes must include the start year (e.g. 4C_2011).' % net}
-#                     message = json.dumps(messdict)
-#                     self.log.error(message)
-#                     raise cherrypy.HTTPError(400, message)
-#
-#                 whereclause.append('YEAR(start)=%s')
-#                 variables.append(int(year))
-#
-#             whereclause.append('code=%s')
-#             variables.append(net)
-#
 #
 #         # Complete SC3 data with local data
 #         result = []
@@ -272,6 +254,69 @@ def getnetwork(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'js
 #
 
 
+def basestation(net: NetworkCode, sta: StationCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
+                restricted: Literal['0', '1'] = None, shared: Literal['0', '1'] = None, starttime: datetime = None,
+                endtime: datetime = None):
+    """List available stations in the system.
+
+    :param net: Network code
+    :type net: str
+    :param sta: Station code
+    :type sta: str
+    :param outformat: Output format (json, text, xml)
+    :type outformat: str
+    :param restricted: Restricted status of the Station ('0' or '1')
+    :type restricted: str
+    :param archive: Institution archiving the station
+    :type archive: str
+    :param shared: Is the network shared with EIDA? ('0' or '1')
+    :type shared: str
+    :param starttime: Start time in isoformat
+    :type starttime: str
+    :param endtime: End time in isoformat
+    :type endtime: str
+    :returns: Data related to the available stations.
+    :rtype: utf-8 encoded string
+    :raises: cherrypy.HTTPError
+    """
+
+    result = conn.getstations(net, sta, restricted, shared, starttime, endtime)
+
+    if outformat == 'json':
+        return JSONResponse(content=jsonable_encoder(result), status_code=200)
+    elif outformat == 'text':
+        fout = io.StringIO("")
+        try:
+            writer = csv.DictWriter(fout, fieldnames=result[0].model_dump().keys(), delimiter='|')
+            writer.writeheader()
+            writer.writerows(jsonable_encoder(result))
+        except IndexError:
+            return PlainTextResponse('', status_code=204)
+        fout.seek(0)
+        return PlainTextResponse(fout.read())
+    elif outformat == 'xml':
+        header = """<?xml version="1.0" encoding="utf-8"?>
+<ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+        """
+        footer = """</ns0:routing>"""
+
+        outxml = [header]
+        for sta in result:
+            routetext = """
+<ns0:route networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*">
+<ns0:station address="https://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{stastart}" end="{staend}" />
+<ns0:wfcatalog address="https://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{stastart}" end="{staend}" />
+<ns0:dataselect address="https://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{stastart}" end="{staend}" />
+<ns0:availability address="https://geofon.gfz-potsdam.de/fdsnws/availability/1/query" priority="1" start="{stastart}" end="{staend}" />
+</ns0:route>
+"""
+            nc = sta['network']
+            sc = sta['code']
+            ss = sta['start'].isoformat()
+            se = sta['end'].isoformat() if sta['end'] is not None else ''
+            outxml.append(routetext.format(netcode=nc, stacode=sc, stastart=ss, staend=se))
+        outxml.append(footer)
+        return Response(content=''.join(outxml), media_type="application/xml")
 
 # @cherrypy.expose
 # class AccessAPI(object):
@@ -452,196 +497,6 @@ def getnetwork(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'js
 #         # self.extrafields = extrafields.split(',') if len(extrafields) else []
 #         # self.stasuppl = configparser.RawConfigParser()
 #         # self.stasuppl.read('stations.cfg')
-#
-#     @cherrypy.expose
-#     def index(self, net: NetworkCode = None, sta: StationCode = None,
-#               outformat: Literal['json', 'text', 'xml'] = 'json', restricted: Literal['0', '1'] = None,
-#               archive: str = None, shared: Literal['0', '1'] = None, starttime: str = None, endtime: str = None,
-#               **kwargs) -> bytes:
-#         """List available stations in the system.
-#
-#         :param net: Network code
-#         :type net: str
-#         :param sta: Station code
-#         :type sta: str
-#         :param outformat: Output format (json, text, xml)
-#         :type outformat: str
-#         :param restricted: Restricted status of the Station ('0' or '1')
-#         :type restricted: str
-#         :param archive: Institution archiving the station
-#         :type archive: str
-#         :param shared: Is the network shared with EIDA? ('0' or '1')
-#         :type shared: str
-#         :param starttime: Start time in isoformat
-#         :type starttime: str
-#         :param endtime: End time in isoformat
-#         :type endtime: str
-#         :returns: Data related to the available stations.
-#         :rtype: utf-8 encoded string
-#         :raises: cherrypy.HTTPError
-#         """
-#
-#         if len(kwargs):
-#             # Send Error 400
-#             messdict = {'code': 0,
-#                         'message': 'Unknown parameter(s) "{}".'.format(kwargs.items())}
-#             message = json.dumps(messdict)
-#             self.log.error(message)
-#             raise cherrypy.HTTPError(400, message)
-#
-#         # Check parameters
-#         if restricted is not None:
-#             restricted = int(restricted)
-#             # except Exception:
-#             #     # Send Error 400
-#             #     messdict = {'code': 0,
-#             #                 'message': 'Restricted does not seem to be 0 or 1.'}
-#             #     message = json.dumps(messdict)
-#             #     self.log.error(message)
-#             #     raise cherrypy.HTTPError(400, message)
-#
-#         # Check parameters
-#         if shared is not None:
-#             shared = int(shared)
-#             # except Exception:
-#             #     # Send Error 400
-#             #     messdict = {'code': 0,
-#             #                 'message': 'Shared does not seem to be 0 or 1.'}
-#             #     message = json.dumps(messdict)
-#             #     self.log.error(message)
-#             #     raise cherrypy.HTTPError(400, message)
-#
-#         # if outformat not in ['json', 'text', 'xml']:
-#         #     # Send Error 400
-#         #     messdict = {'code': 0,
-#         #                 'message': 'Wrong value in the "outformat" parameter.'}
-#         #     message = json.dumps(messdict)
-#         #     self.log.error(message)
-#         #     raise cherrypy.HTTPError(400, message)
-#
-#         if starttime is not None:
-#             try:
-#                 str2date(starttime)
-#             except Exception:
-#                 # Send Error 400
-#                 messdict = {'code': 0,
-#                             'message': 'Error converting the "starttime" parameter (%s).' % starttime}
-#                 message = json.dumps(messdict)
-#                 self.log.error(message)
-#                 raise cherrypy.HTTPError(400, message)
-#
-#         if endtime is not None:
-#             try:
-#                 str2date(endtime)
-#             except Exception:
-#                 # Send Error 400
-#                 messdict = {'code': 0,
-#                             'message': 'Error converting the "endtime" parameter (%s).' % endtime}
-#                 message = json.dumps(messdict)
-#                 self.log.error(message)
-#                 raise cherrypy.HTTPError(400, message)
-#
-#         # try:
-#         query = ('select N.code as network, S.code as code, latitude, longitude, '
-#                  'elevation, place, country, S.start, S.end, S.restricted, S.shared '
-#                  'from Station as S join Network as N')
-#         fields = ['network', 'code', 'latitude', 'longitude', 'elevation',
-#                   'place', 'country', 'start', 'end', 'restricted', 'shared']
-#         # fields.extend(self.extrafields)
-#
-#         whereclause = ['S._parent_oid=N._oid']
-#         variables = []
-#         if net is not None:
-#             if net[0] in '0123456789XYZ':
-#                 try:
-#                     net, year = net.split('_')
-#                 except ValueError:
-#                     # Send Error 400
-#                     messdict = {'code': 0,
-#                                 'message': 'Wrong network code (%s). Temporary codes must include the start year (e.g. 4C_2011).' % net}
-#                     message = json.dumps(messdict)
-#                     self.log.error(message)
-#                     raise cherrypy.HTTPError(400, message)
-#
-#                 whereclause.append('YEAR(N.start)=%s')
-#                 variables.append(int(year))
-#
-#             whereclause.append('N.code=%s')
-#             variables.append(net)
-#
-#         if sta is not None:
-#             whereclause.append('S.code=%s')
-#             variables.append(sta)
-#
-#         if restricted is not None:
-#             whereclause.append('S.restricted=%s')
-#             variables.append(restricted)
-#
-#         if archive is not None:
-#             whereclause.append('S.archive=%s')
-#             variables.append(archive)
-#
-#         if shared is not None:
-#             whereclause.append('S.shared=%s')
-#             variables.append(shared)
-#
-#         if starttime is not None:
-#             whereclause.append('S.start>=%s')
-#             variables.append(starttime)
-#
-#         if endtime is not None:
-#             whereclause.append('S.end<=%s')
-#             variables.append(endtime)
-#
-#         if len(whereclause):
-#             query = query + ' where ' + ' and '.join(whereclause)
-#
-#         # self.cursor = self.conn.cursor()
-#         self.conn.execute(query, variables)
-#
-#         # Complete SC3 data with local data
-#         result = self.conn.fetchall()
-#         # cursta = self.conn.fetchall()
-#
-#         if outformat == 'json':
-#             cherrypy.response.headers['Content-Type'] = 'application/json'
-#
-#             return json.dumps(result, default=datetime.datetime.isoformat).encode('utf-8')
-#         elif outformat == 'text':
-#             cherrypy.response.headers['Content-Type'] = 'text/plain'
-#
-#             fout = io.StringIO("")
-#             writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
-#             writer.writeheader()
-#             writer.writerows(result)
-#             fout.seek(0)
-#             cherrypy.response.headers['Content-Type'] = 'text/plain'
-#             return fout.read().encode('utf-8')
-#         elif outformat == 'xml':
-#             cherrypy.response.headers['Content-Type'] = 'application/xml'
-#
-#             header = """<?xml version="1.0" encoding="utf-8"?>
-#   <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
-#             """
-#             footer = """</ns0:routing>"""
-#
-#             outxml = [header]
-#             for sta in result:
-#                 routetext = """
-#  <ns0:route networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*">
-#   <ns0:station address="https://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{stastart}" end="{staend}" />
-#   <ns0:wfcatalog address="https://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{stastart}" end="{staend}" />
-#   <ns0:dataselect address="https://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{stastart}" end="{staend}" />
-#   <ns0:availability address="https://geofon.gfz-potsdam.de/fdsnws/availability/1/query" priority="1" start="{stastart}" end="{staend}" />
-#  </ns0:route>
-#  """
-#                 nc = sta['network']
-#                 sc = sta['code']
-#                 ss = sta['start'].isoformat()
-#                 se = sta['end'].isoformat() if sta['end'] is not None else ''
-#                 outxml.append(routetext.format(netcode=nc, stacode=sc, stastart=ss, staend=se))
-#             outxml.append(footer)
-#             return ''.join(outxml).encode('utf-8')
 #
 #
 # @cherrypy.expose
