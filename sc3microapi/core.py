@@ -18,5 +18,19 @@ class Network(BaseModel):
     end: Union[datetime, None]
     netClass: Literal['p', 't']
     archive: str
-    restricted: conint(ge=0, le=1)
-    shared: conint(ge=0, le=1)
+    restricted: Literal[0, 1]
+    shared: Literal[0, 1]
+
+
+class Station(BaseModel):
+    network: NetworkCode
+    code: StationCode
+    latitude: float
+    longitude: float
+    elevation: float
+    place: str
+    country: str
+    start: datetime
+    end: Union[datetime, None]
+    restricted: Literal[0, 1]
+    shared: Literal[0, 1]
