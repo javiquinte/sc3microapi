@@ -34,6 +34,7 @@ from typing import Literal
 import csv
 from core import NetworkCode
 from datetime import datetime
+from datetime import date
 import configparser
 from db import TestConnection
 from db import SC3dbconnection
@@ -92,9 +93,9 @@ app = FastAPI()
 
 # This is needed to capture both cases of the "network" method (with and without network code)
 def basenetwork(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
-                restricted: conint(ge=0, le=1) = None, archive: str = None, netclass: Literal['p', 't'] = None,
-                shared: conint(ge=0, le=1) = None, starttime: str = None,
-                endtime: str = None):
+                restricted: Literal[0, 1] = None, archive: str = None, netclass: Literal['p', 't'] = None,
+                shared: Literal[0, 1] = None, starttime: datetime = None,
+                endtime: datetime = None):
     """List available networks in the system.
 
     :param net: Network code
@@ -109,10 +110,10 @@ def basenetwork(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml
     :type netclass: str
     :param shared: Is the network shared with EIDA? ('0' or '1')
     :type shared: str
-    :param starttime: Start time in isoformat
-    :type starttime: str
-    :param endtime: End time in isoformat
-    :type endtime: str
+    :param starttime: Start time
+    :type starttime: datetime
+    :param endtime: End time
+    :type endtime: datetime
     :returns: Data related to the available networks.
     :rtype: utf-8 encoded string
     :raises: cherrypy.HTTPError
@@ -122,20 +123,6 @@ def basenetwork(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml
     extrafields = auxextrafields.split(',') if len(auxextrafields) else []
     netsuppl = configparser.RawConfigParser()
     netsuppl.read('networks.cfg')
-
-    if starttime is not None:
-        try:
-            str2date(starttime)
-        except Exception:
-            # Send Error 400
-            raise HTTPException(status_code=400, detail='Error converting the "starttime" parameter (%s).' % starttime)
-
-    if endtime is not None:
-        try:
-            str2date(endtime)
-        except Exception:
-            # Send Error 400
-            raise HTTPException(status_code=400, detail='Error converting the "endtime" parameter (%s).' % endtime)
 
     result = conn.getnetworks(net, restricted, archive, netclass, shared, starttime, endtime)
 
@@ -176,44 +163,45 @@ def basenetwork(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml
         return Response(content=''.join(outxml), media_type="application/xml")
 
 
-@app.get('/network/{net}')
-def index(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
-          restricted: conint(ge=0, le=1) = None, archive: str = None, netclass: Literal['p', 't'] = None,
-          shared: conint(ge=0, le=1) = None, starttime: str = None,
-          endtime: str = None):
+@app.get('/network', summary='List networks', tags=['Network'])
+def getnetworks(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
+                restricted: Literal[0, 1] = None, archive: str = None, netclass: Literal['p', 't'] = None,
+                shared: Literal[0, 1] = None, starttime: Union[datetime, date] = None,
+                endtime: Union[datetime, date] = None):
     #  -> Union[JSONResponse, PlainTextResponse, Response]
-    """List available networks in the system.
+    """Get information about many networks based on the filters requested
 
-    :param net: Network code
-    :type net: str
-    :param outformat: Output format (json, text, xml)
-    :type outformat: str
-    :param restricted: Restricted status of the Network ('0' or '1')
-    :type restricted: str
-    :param archive: Institution archiving the network
-    :type archive: str
-    :param netclass: Tpye of network (permanent 'p' or temporary 't')
-    :type netclass: str
-    :param shared: Is the network shared with EIDA? ('0' or '1')
-    :type shared: str
-    :param starttime: Start time in isoformat
-    :type starttime: str
-    :param endtime: End time in isoformat
-    :type endtime: str
-    :returns: Data related to the available networks.
-    :rtype: utf-8 encoded string
-    :raises: cherrypy.HTTPError
+    - **net**: Network code
+    - **outformat**: Output format (json, text, xml)
+    - **restricted**: Restricted status of the Network (0 or 1)
+    - **archive**: Institution archiving the network
+    - **netclass**: Type of network (permanent 'p' or temporary 't')
+    - **shared**: Is the network shared with EIDA? (0 or 1)
+    - **starttime**: Start time in isoformat
+    - **endtime**: End time in isoformat
     """
     return basenetwork(net, outformat, restricted, archive, netclass, shared, starttime, endtime)
 
 
-@app.get('/network')
-def index(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
-          restricted: conint(ge=0, le=1) = None, archive: str = None, netclass: Literal['p', 't'] = None,
-          shared: conint(ge=0, le=1) = None, starttime: str = None,
-          endtime: str = None):
+@app.get('/network/{net}', summary='Get a network', tags=['Network'])
+def getnetwork(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'json',
+               restricted: Literal[0, 1] = None, archive: str = None, netclass: Literal['p', 't'] = None,
+               shared: Literal[0, 1] = None, starttime: Union[datetime, date] = None,
+               endtime: Union[datetime, date] = None):
     #  -> Union[JSONResponse, PlainTextResponse, Response]
+    """Get information about one network in particular
+
+    - **net**: Network code
+    - **outformat**: Output format (json, text, xml)
+    - **restricted**: Restricted status of the Network (0 or 1)
+    - **archive**: Institution archiving the network
+    - **netclass**: Type of network (permanent 'p' or temporary 't')
+    - **shared**: Is the network shared with EIDA? (0 or 1)
+    - **starttime**: Start time in isoformat
+    - **endtime**: End time in isoformat
+    """
     return basenetwork(net, outformat, restricted, archive, netclass, shared, starttime, endtime)
+
 
 #         if net is not None:
 #             if net[0] in '0123456789XYZ':
@@ -245,31 +233,6 @@ def index(net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = '
 #             curnet = self.conn.fetchone()
 #
 
-
-@app.get('/', response_class=HTMLResponse)
-def getroot():
-    # TODO Create an HTML page with a minimum documentation for a user
-    try:
-        with open('help.html') as fin:
-            texthelp = fin.read()
-    except FileNotFoundError:
-        texthelp = """<html>
-                        <head>sc3microapi</head>
-                        <body>
-                          Default help for the sc3microapi service (GEOFON).
-                        </body>
-                      </html>"""
-    return texthelp.encode('utf-8')
-
-
-@app.get('/version', response_class=PlainTextResponse)
-def version():
-    """Return the version of this implementation.
-
-    :returns: Version of the system
-    :rtype: string
-    """
-    return __version__.encode('utf-8')
 
 
 # @cherrypy.expose
