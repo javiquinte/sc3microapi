@@ -255,29 +255,26 @@ def getnetwork(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'js
 
 
 def basestation(net: NetworkCode, sta: StationCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
-                restricted: Literal['0', '1'] = None, shared: Literal['0', '1'] = None, starttime: datetime = None,
+                restricted: Literal[0, 1] = None, shared: Literal[0, 1] = None, starttime: datetime = None,
                 endtime: datetime = None):
     """List available stations in the system.
 
     :param net: Network code
-    :type net: str
+    :type net: NetworkCode
     :param sta: Station code
-    :type sta: str
+    :type sta: StationCode
     :param outformat: Output format (json, text, xml)
     :type outformat: str
-    :param restricted: Restricted status of the Station ('0' or '1')
-    :type restricted: str
-    :param archive: Institution archiving the station
-    :type archive: str
-    :param shared: Is the network shared with EIDA? ('0' or '1')
-    :type shared: str
-    :param starttime: Start time in isoformat
-    :type starttime: str
-    :param endtime: End time in isoformat
-    :type endtime: str
+    :param restricted: Restricted status of the Station (0 or 1)
+    :type restricted: int
+    :param shared: Is the network shared with EIDA? (0 or 1)
+    :type shared: int
+    :param starttime: Start time
+    :type starttime: datetime
+    :param endtime: End time
+    :type endtime: datetime
     :returns: Data related to the available stations.
     :rtype: utf-8 encoded string
-    :raises: cherrypy.HTTPError
     """
 
     result = conn.getstations(net, sta, restricted, shared, starttime, endtime)
