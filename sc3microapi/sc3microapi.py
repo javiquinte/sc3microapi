@@ -32,6 +32,7 @@ from typing import Union
 from typing import Literal
 # from sc3microapi import __version__
 import csv
+from pprint import pprint
 from core import NetworkCode
 from datetime import datetime
 from datetime import date
@@ -43,8 +44,7 @@ from fastapi.responses import PlainTextResponse
 from fastapi.responses import Response
 from fastapi.responses import HTMLResponse
 from fastapi.responses import JSONResponse
-from fastapi import HTTPException
-from core import Network
+from fastapi.exceptions import RequestValidationError
 
 
 # Define formally parts of the NSLC code
@@ -89,6 +89,44 @@ else:
     conn = SC3dbconnection(cfgfile.get('mysql', 'host'), cfgfile.get('mysql', 'user'),
                            cfgfile.get('mysql', 'password'), cfgfile.get('mysql', 'db'))
 app = FastAPI()
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: Exception):
+    errstr = io.StringIO("")
+    pprint(exc.errors(), stream=errstr)
+    errstr.seek(0)
+    return PlainTextResponse('Query parameters: %s\n\nError: %s' % (request.query_params, errstr.read()),
+                             status_code=400)
+
+
+@app.get('/', tags=['General'], summary='Basic usage documentation',
+         response_class=HTMLResponse)
+def getroot():
+    # TODO Create an HTML page with a minimum documentation for a user
+    try:
+        with open('help.html') as fin:
+            texthelp = fin.read()
+    except FileNotFoundError:
+        texthelp = """<html>
+                        <head>sc3microapi</head>
+                        <body>
+                          Default help for the sc3microapi service (GEOFON).<br>
+                          Full details about this service can be found in the OpenAPI specification at the following
+                          <a href='/docs'>link</a>
+                        </body>
+                      </html>"""
+    return texthelp.encode('utf-8')
+
+
+@app.get('/version', tags=['General'], summary='Get version of the service', response_class=PlainTextResponse)
+def version():
+    """Return the version of this implementation.
+
+    :returns: Version of the system
+    :rtype: string
+    """
+    return __version__.encode('utf-8')
 
 
 # This is needed to capture both cases of the "network" method (with and without network code)
