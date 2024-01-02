@@ -9,6 +9,7 @@ from core import NetworkCode
 from core import StationCode
 from core import Network
 from core import Station
+from core import VirtualNet
 from pydantic import conint
 import MySQLdb
 from MySQLdb.cursors import DictCursor
@@ -26,6 +27,11 @@ class GenericConnection(ABC):
     def getstations(self, net: NetworkCode, sta: Union[StationCode, None], restricted: Literal[0, 1] = None,
                     shared: Literal[0, 1] = None, starttime: datetime = None,
                     endtime: datetime = None) -> List[Station]:
+        pass
+
+    @abstractmethod
+    def getvirtualnets(self, net: NetworkCode, typevn: str = None, starttime: datetime = None,
+                       endtime: datetime = None) -> List[VirtualNet]:
         pass
 
 
@@ -163,6 +169,39 @@ class TestConnection(GenericConnection):
         logging.debug(query % tuple(variables))
         return result
 
+    def getvirtualnets(self, net: NetworkCode, typevn: str = None, starttime: datetime = None,
+                       endtime: datetime = None) -> List[VirtualNet]:
+        query = 'select code, start, end, type from StationGroup'
+        fields = ['code', 'start', 'end', 'type']
+
+        whereclause = []
+        variables = []
+        if net is not None:
+            whereclause.append('code=%s')
+            variables.append(net)
+
+        if typevn is not None:
+            whereclause.append('type=%s')
+            variables.append(typevn)
+
+        if starttime is not None:
+            whereclause.append('start>=%s')
+            variables.append(starttime)
+
+        if endtime is not None:
+            whereclause.append('end<=%s')
+            variables.append(endtime)
+
+        if len(whereclause):
+            query = query + ' where ' + ' and '.join(whereclause)
+
+        result = [VirtualNet(**{'code': '_GEALL', 'start': datetime(1993, 1, 1), 'end': None,
+                                'type': '?'})]
+
+        # Complete SC3 data with local data
+        logging.debug(query % tuple(variables))
+        return result
+
 
 class SC3dbconnection(GenericConnection):
     def __init__(self, host: str, user: str, password: str, db: str = 'seiscomp3'):
@@ -194,6 +233,10 @@ class SC3dbconnection(GenericConnection):
     def getstations(self, net: NetworkCode, sta: Union[StationCode, None], restricted: Literal[0, 1] = None,
                     shared: Literal[0, 1] = None, starttime: datetime = None,
                     endtime: datetime = None) -> List[Station]:
+        pass
+
+    def getvirtualnets(self, net: NetworkCode, typevn: str = None, starttime: datetime = None,
+                       endtime: datetime = None) -> List[VirtualNet]:
         pass
 
     def fetchone(self):
