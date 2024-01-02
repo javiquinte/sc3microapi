@@ -43,6 +43,13 @@ class VirtualNet(BaseModel):
     type: str
 
 
+class VirtualStation(BaseModel):
+    network: NetworkCode
+    station: StationCode
+    start: datetime
+    end: Union[datetime, None]
+
+
 def str2date(dateiso: constr(min_length=4, strip_whitespace=True, to_upper=True)) -> Union[datetime, None]:
     """Transform a string to a datetime.
 
