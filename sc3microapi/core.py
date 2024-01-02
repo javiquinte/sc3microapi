@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 from pydantic import constr
-from pydantic import conint
 from typing import Union
 from typing import Literal
 from datetime import datetime
+from warnings import warn
 
 # Define formally parts of the NSLC code
 NetworkCode = constr(strip_whitespace=True, to_upper=True, min_length=2, max_length=7)
@@ -44,6 +44,7 @@ def str2date(dateiso: constr(min_length=4, strip_whitespace=True, to_upper=True)
     :return: A datetime represented the converted input.
     :rtype: datetime
     """
+    warn('This function will be deprecated as all transformations to datetime are done by Pydantic')
     # In case of empty string
     if not len(dateiso):
         return None
