@@ -294,8 +294,8 @@ def basestation(net: NetworkCode, sta: StationCode = None, outformat: Literal['t
 
 @app.get('/station/{net}', summary='Get list of stations', tags=['Station'])
 def getstations(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'json',
-               restricted: Literal[0, 1] = None, shared: Literal[0, 1] = None, starttime: Union[datetime, date] = None,
-               endtime: Union[datetime, date] = None):
+                restricted: Literal[0, 1] = None, shared: Literal[0, 1] = None, starttime: Union[datetime, date] = None,
+                endtime: Union[datetime, date] = None):
     #  -> Union[JSONResponse, PlainTextResponse, Response]
     """Get information about one station in particular
 
@@ -325,6 +325,285 @@ def getstation(net: NetworkCode, sta: StationCode = None, outformat: Literal['te
     - **endtime**: End time in isoformat
     """
     return basestation(net, sta, outformat, restricted, shared, starttime, endtime)
+
+
+@app.get('/virtualnet', summary='Get list of virtual networks',
+         tags=['Virtual Network'])
+def virtualnet(outformat: Literal['text', 'json', 'xml'] = 'json', typevn: str = None,
+               starttime: Union[datetime, date] = None, endtime: Union[datetime, date] = None):
+    #  -> Union[JSONResponse, PlainTextResponse, Response]
+    """Get list of virtual networks
+
+    - **outformat**: Output format (json, text, xml)
+    - **typevn**: Type of the virtual network
+    - **starttime**: Start time in isoformat
+    - **endtime**: End time in isoformat
+    """
+
+    result = conn.getvirtualnets(None, typevn, starttime, endtime)
+
+    if outformat == 'json':
+        return JSONResponse(content=jsonable_encoder(result), status_code=200)
+    elif outformat == 'text':
+        fout = io.StringIO("")
+        try:
+            writer = csv.DictWriter(fout, fieldnames=result[0].model_dump().keys(), delimiter='|')
+            writer.writeheader()
+            writer.writerows(jsonable_encoder(result))
+        except IndexError:
+            return PlainTextResponse('', status_code=204)
+
+        fout.seek(0)
+        return PlainTextResponse(fout.read())
+    elif outformat == 'xml':
+        header = """<?xml version="1.0" encoding="utf-8"?>
+    <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+            """
+        footer = """</ns0:routing>"""
+
+        outxml = [header]
+        for vn in result:
+            routetext = """
+    <ns0:vnetwork networkCode="{vncode}">
+    </ns0:vnetwork>
+    """
+            vncode = vn['code']
+            outxml.append(routetext.format(vncode=vncode))
+        outxml.append(footer)
+        return Response(content=''.join(outxml), media_type="application/xml")
+
+
+# def basevnstation(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'json', typevn: str = None,
+#                   starttime: Union[datetime, date] = None, endtime: Union[datetime, date] = None):
+#     pass
+#
+#
+# @app.get('/virtualnet/stations/{net}', summary='Get list of stations from a virtual network',
+#          deprecated=True, tags=['Virtual Network'])
+# def virtualstationsdeprecated(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'json', typevn: str = None,
+#                               starttime: Union[datetime, date] = None, endtime: Union[datetime, date] = None):
+#     #  -> Union[JSONResponse, PlainTextResponse, Response]
+#     """Get information about the stations in a virtual network
+#
+#     - **net**: Network code
+#     - **outformat**: Output format (json, text, xml)
+#     - **typevn**: Type of the virtual network
+#     - **starttime**: Start time in isoformat
+#     - **endtime**: End time in isoformat
+#     """
+#     return basevnstation(net, outformat, typevn, starttime, endtime)
+#
+#
+# @app.get('/virtualnet/station/{net}', summary='Get list of stations from a virtual network',
+#          tags=['Virtual Network'])
+# def virtualstation(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'json', typevn: str = None,
+#                    starttime: Union[datetime, date] = None, endtime: Union[datetime, date] = None):
+#     #  -> Union[JSONResponse, PlainTextResponse, Response]
+#     """Get information about the stations in a virtual network
+#
+#     - **net**: Network code
+#     - **outformat**: Output format (json, text, xml)
+#     - **typevn**: Type of the virtual network
+#     - **starttime**: Start time in isoformat
+#     - **endtime**: End time in isoformat
+#     """
+#     return basevnstation(net, outformat, typevn, starttime, endtime)
+
+# @cherrypy.expose
+# @cherrypy.popargs('net')
+# class VirtualNetsAPI(object):
+#     """Object dispatching methods related to virtual networks."""
+#
+#     def __init__(self, host: str, user: str, password: str, db: str):
+#         """Constructor of the NetworksAPI class."""
+#         # Save connection
+#         self.conn = SC3dbconnection(host, user, password, db)
+#         self.log = logging.getLogger('VirtualNetAPI')
+#
+#         # Get extra fields from the cfg file
+#         cfgfile = configparser.RawConfigParser()
+#         cfgfile.read('sc3microapi.cfg')
+#
+#     @cherrypy.expose
+#     def index(self, net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
+#               typevn: str = None, starttime: str = None, endtime: str = None, **kwargs) -> bytes:
+#         """List available networks in the system.
+#
+#         :param net: Network code
+#         :type net: str
+#         :param outformat: Output format (json, text)
+#         :type outformat: str
+#         :param typevn: Type of virtual network
+#         :type typevn: str
+#         :param starttime: Start time in isoformat
+#         :type starttime: str
+#         :param endtime: End time in isoformat
+#         :type endtime: str
+#         :returns: Data related to the available networks.
+#         :rtype: utf-8 encoded string
+#         :raises: cherrypy.HTTPError
+#         """
+#
+#         # try:
+#         query = 'select code, start, end, type from StationGroup'
+#         fields = ['code', 'start', 'end', 'type']
+#
+#         whereclause = []
+#         variables = []
+#         if net is not None:
+#             whereclause.append('code=%s')
+#             variables.append(net)
+#
+#         if typevn is not None:
+#             whereclause.append('type=%s')
+#             variables.append(typevn)
+#
+#         if starttime is not None:
+#             whereclause.append('start>=%s')
+#             variables.append(starttime)
+#
+#         if endtime is not None:
+#             whereclause.append('end<=%s')
+#             variables.append(endtime)
+#
+#         if len(whereclause):
+#             query = query + ' where ' + ' and '.join(whereclause)
+#
+#         # self.cursor = self.conn.cursor()
+#         self.conn.execute(query, variables)
+#
+#         # Retrieve all virtual networks
+#         result = self.conn.fetchall()
+#
+#         if outformat == 'json':
+#             return json.dumps(result,
+#                               default=datetime.datetime.isoformat).encode('utf-8')
+#         elif outformat == 'text':
+#             fout = io.StringIO("")
+#             writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
+#             writer.writeheader()
+#             writer.writerows(result)
+#             fout.seek(0)
+#             cherrypy.response.headers['Content-Type'] = 'text/plain'
+#             return fout.read().encode('utf-8')
+#         elif outformat == 'xml':
+#             cherrypy.response.headers['Content-Type'] = 'application/xml'
+#
+#             header = """<?xml version="1.0" encoding="utf-8"?>
+#      <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+#                """
+#             footer = """</ns0:routing>"""
+#
+#             outxml = [header]
+#             for vn in result:
+#                 routetext = """
+#     <ns0:vnetwork networkCode="{vncode}">
+#     </ns0:vnetwork>
+#     """
+#                 vncode = vn['code']
+#                 outxml.append(routetext.format(vncode=vncode))
+#             outxml.append(footer)
+#             return ''.join(outxml).encode('utf-8')
+#
+#     @cherrypy.expose
+#     def stations(self, net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'json', **kwargs) -> bytes:
+#         """List available networks in the system.
+#
+#         :param net: Network code
+#         :type net: str
+#         :param outformat: Output format (json, text, xml)
+#         :type outformat: str
+#         :returns: List of stations in the virtual network.
+#         :rtype: utf-8 encoded string
+#         :raises: cherrypy.HTTPError
+#         """
+#
+#         if len(kwargs):
+#             # Send Error 400
+#             messdict = {'code': 0,
+#                         'message': 'Unknown parameter(s) "{}".'.format(kwargs.items())}
+#             message = json.dumps(messdict)
+#             self.log.error(message)
+#             raise cherrypy.HTTPError(400, message)
+#
+#         cherrypy.response.headers['Content-Type'] = 'application/json'
+#
+#         # try:
+#         #     if outformat not in ['json', 'text', 'xml']:
+#         #         raise Exception
+#         # except Exception:
+#         #     # Send Error 400
+#         #     messdict = {'code': 0,
+#         #                 'message': 'Wrong value in the "outformat" parameter.'}
+#         #     message = json.dumps(messdict)
+#         #     self.log.error(message)
+#         #     raise cherrypy.HTTPError(400, message)
+#
+#         # try:
+#         query = 'select ne.code as network, st.code as station, st.start as start, st.end as end ' + \
+#             'from StationGroup as sg join StationReference as sr join PublicObject as po ' + \
+#             'join Station as st join  Network as ne'
+#
+#         fields = ['network', 'station', 'start', 'end']
+#
+#         whereclause = ['sg._oid = sr._parent_oid',
+#                        'po.publicID = sr.stationID',
+#                        'st._oid = po._oid',
+#                        'st._parent_oid = ne._oid']
+#         variables = []
+#         whereclause.append('sg.code=%s')
+#         variables.append(net)
+#
+#         if len(whereclause):
+#             query = query + ' where ' + ' and '.join(whereclause)
+#
+#         # self.cursor = self.conn.cursor()
+#         self.conn.execute(query, variables)
+#
+#         # Retrieve all VNs
+#         result = self.conn.fetchall()
+#
+#         if outformat == 'json':
+#             return json.dumps(result,
+#                               default=datetime.datetime.isoformat).encode('utf-8')
+#         elif outformat == 'text':
+#             fout = io.StringIO("")
+#             writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
+#             writer.writeheader()
+#             writer.writerows(result)
+#             fout.seek(0)
+#             cherrypy.response.headers['Content-Type'] = 'text/plain'
+#             return fout.read().encode('utf-8')
+#         elif outformat == 'xml':
+#             cherrypy.response.headers['Content-Type'] = 'application/xml'
+#
+#             header = """<?xml version="1.0" encoding="utf-8"?>
+#      <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
+#      <ns0:vnetwork networkCode="%s">
+#                """
+#             footer = """</ns0:vnetwork>\n</ns0:routing>"""
+#
+#             outxml = [header % net]
+#             for stream in result:
+#                 streamtext = '<ns0:stream networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*" start="{starttime}" end="{endtime}" />\n'
+#                 netcode = stream['network']
+#                 stacode = stream['station']
+#                 starttime = stream['start']
+#                 try:
+#                     str2date(stream['end'])
+#                     endtime = stream['end']
+#                 except Exception:
+#                     endtime = ''
+#                 outxml.append(streamtext.format(netcode=netcode, stacode=stacode, starttime=starttime, endtime=endtime))
+#             outxml.append(footer)
+#             return ''.join(outxml).encode('utf-8')
+
+
+
+
+
+
+
 
 # @cherrypy.expose
 # class AccessAPI(object):
@@ -507,238 +786,6 @@ def getstation(net: NetworkCode, sta: StationCode = None, outformat: Literal['te
 #         # self.stasuppl.read('stations.cfg')
 #
 #
-# @cherrypy.expose
-# @cherrypy.popargs('net')
-# class VirtualNetsAPI(object):
-#     """Object dispatching methods related to virtual networks."""
-#
-#     def __init__(self, host: str, user: str, password: str, db: str):
-#         """Constructor of the NetworksAPI class."""
-#         # Save connection
-#         self.conn = SC3dbconnection(host, user, password, db)
-#         self.log = logging.getLogger('VirtualNetAPI')
-#
-#         # Get extra fields from the cfg file
-#         cfgfile = configparser.RawConfigParser()
-#         cfgfile.read('sc3microapi.cfg')
-#
-#     @cherrypy.expose
-#     def index(self, net: NetworkCode = None, outformat: Literal['text', 'json', 'xml'] = 'json',
-#               typevn: str = None, starttime: str = None, endtime: str = None, **kwargs) -> bytes:
-#         """List available networks in the system.
-#
-#         :param net: Network code
-#         :type net: str
-#         :param outformat: Output format (json, text)
-#         :type outformat: str
-#         :param typevn: Type of virtual network
-#         :type typevn: str
-#         :param starttime: Start time in isoformat
-#         :type starttime: str
-#         :param endtime: End time in isoformat
-#         :type endtime: str
-#         :returns: Data related to the available networks.
-#         :rtype: utf-8 encoded string
-#         :raises: cherrypy.HTTPError
-#         """
-#
-#         if len(kwargs):
-#             # Send Error 400
-#             messdict = {'code': 0,
-#                         'message': 'Unknown parameter(s) "{}".'.format(kwargs.items())}
-#             message = json.dumps(messdict)
-#             self.log.error(message)
-#             raise cherrypy.HTTPError(400, message)
-#
-#         cherrypy.response.headers['Content-Type'] = 'application/json'
-#
-#         # try:
-#         #     if outformat not in ['json', 'text', 'xml']:
-#         #         raise Exception
-#         # except Exception:
-#         #     # Send Error 400
-#         #     messdict = {'code': 0,
-#         #                 'message': 'Wrong value in the "outformat" parameter.'}
-#         #     message = json.dumps(messdict)
-#         #     self.log.error(message)
-#         #     raise cherrypy.HTTPError(400, message)
-#
-#         if starttime is not None:
-#             try:
-#                 str2date(starttime)
-#             except Exception:
-#                 # Send Error 400
-#                 messdict = {'code': 0,
-#                             'message': 'Error converting the "starttime" parameter (%s).' % starttime}
-#                 message = json.dumps(messdict)
-#                 self.log.error(message)
-#                 raise cherrypy.HTTPError(400, message)
-#
-#         if endtime is not None:
-#             try:
-#                 str2date(endtime)
-#             except Exception:
-#                 # Send Error 400
-#                 messdict = {'code': 0,
-#                             'message': 'Error converting the "endtime" parameter (%s).' % endtime}
-#                 message = json.dumps(messdict)
-#                 self.log.error(message)
-#                 raise cherrypy.HTTPError(400, message)
-#
-#         # try:
-#         query = 'select code, start, end, type from StationGroup'
-#         fields = ['code', 'start', 'end', 'type']
-#
-#         whereclause = []
-#         variables = []
-#         if net is not None:
-#             whereclause.append('code=%s')
-#             variables.append(net)
-#
-#         if typevn is not None:
-#             whereclause.append('type=%s')
-#             variables.append(typevn)
-#
-#         if starttime is not None:
-#             whereclause.append('start>=%s')
-#             variables.append(starttime)
-#
-#         if endtime is not None:
-#             whereclause.append('end<=%s')
-#             variables.append(endtime)
-#
-#         if len(whereclause):
-#             query = query + ' where ' + ' and '.join(whereclause)
-#
-#         # self.cursor = self.conn.cursor()
-#         self.conn.execute(query, variables)
-#
-#         # Retrieve all virtual networks
-#         result = self.conn.fetchall()
-#
-#         if outformat == 'json':
-#             return json.dumps(result,
-#                               default=datetime.datetime.isoformat).encode('utf-8')
-#         elif outformat == 'text':
-#             fout = io.StringIO("")
-#             writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
-#             writer.writeheader()
-#             writer.writerows(result)
-#             fout.seek(0)
-#             cherrypy.response.headers['Content-Type'] = 'text/plain'
-#             return fout.read().encode('utf-8')
-#         elif outformat == 'xml':
-#             cherrypy.response.headers['Content-Type'] = 'application/xml'
-#
-#             header = """<?xml version="1.0" encoding="utf-8"?>
-#      <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
-#                """
-#             footer = """</ns0:routing>"""
-#
-#             outxml = [header]
-#             for vn in result:
-#                 routetext = """
-#     <ns0:vnetwork networkCode="{vncode}">
-#     </ns0:vnetwork>
-#     """
-#                 vncode = vn['code']
-#                 outxml.append(routetext.format(vncode=vncode))
-#             outxml.append(footer)
-#             return ''.join(outxml).encode('utf-8')
-#
-#     @cherrypy.expose
-#     def stations(self, net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'json', **kwargs) -> bytes:
-#         """List available networks in the system.
-#
-#         :param net: Network code
-#         :type net: str
-#         :param outformat: Output format (json, text, xml)
-#         :type outformat: str
-#         :returns: List of stations in the virtual network.
-#         :rtype: utf-8 encoded string
-#         :raises: cherrypy.HTTPError
-#         """
-#
-#         if len(kwargs):
-#             # Send Error 400
-#             messdict = {'code': 0,
-#                         'message': 'Unknown parameter(s) "{}".'.format(kwargs.items())}
-#             message = json.dumps(messdict)
-#             self.log.error(message)
-#             raise cherrypy.HTTPError(400, message)
-#
-#         cherrypy.response.headers['Content-Type'] = 'application/json'
-#
-#         # try:
-#         #     if outformat not in ['json', 'text', 'xml']:
-#         #         raise Exception
-#         # except Exception:
-#         #     # Send Error 400
-#         #     messdict = {'code': 0,
-#         #                 'message': 'Wrong value in the "outformat" parameter.'}
-#         #     message = json.dumps(messdict)
-#         #     self.log.error(message)
-#         #     raise cherrypy.HTTPError(400, message)
-#
-#         # try:
-#         query = 'select ne.code as network, st.code as station, st.start as start, st.end as end ' + \
-#             'from StationGroup as sg join StationReference as sr join PublicObject as po ' + \
-#             'join Station as st join  Network as ne'
-#
-#         fields = ['network', 'station', 'start', 'end']
-#
-#         whereclause = ['sg._oid = sr._parent_oid',
-#                        'po.publicID = sr.stationID',
-#                        'st._oid = po._oid',
-#                        'st._parent_oid = ne._oid']
-#         variables = []
-#         whereclause.append('sg.code=%s')
-#         variables.append(net)
-#
-#         if len(whereclause):
-#             query = query + ' where ' + ' and '.join(whereclause)
-#
-#         # self.cursor = self.conn.cursor()
-#         self.conn.execute(query, variables)
-#
-#         # Retrieve all VNs
-#         result = self.conn.fetchall()
-#
-#         if outformat == 'json':
-#             return json.dumps(result,
-#                               default=datetime.datetime.isoformat).encode('utf-8')
-#         elif outformat == 'text':
-#             fout = io.StringIO("")
-#             writer = csv.DictWriter(fout, fieldnames=fields, delimiter='|')
-#             writer.writeheader()
-#             writer.writerows(result)
-#             fout.seek(0)
-#             cherrypy.response.headers['Content-Type'] = 'text/plain'
-#             return fout.read().encode('utf-8')
-#         elif outformat == 'xml':
-#             cherrypy.response.headers['Content-Type'] = 'application/xml'
-#
-#             header = """<?xml version="1.0" encoding="utf-8"?>
-#      <ns0:routing xmlns:ns0="http://geofon.gfz-potsdam.de/ns/Routing/1.0/">
-#      <ns0:vnetwork networkCode="%s">
-#                """
-#             footer = """</ns0:vnetwork>\n</ns0:routing>"""
-#
-#             outxml = [header % net]
-#             for stream in result:
-#                 streamtext = '<ns0:stream networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*" start="{starttime}" end="{endtime}" />\n'
-#                 netcode = stream['network']
-#                 stacode = stream['station']
-#                 starttime = stream['start']
-#                 try:
-#                     str2date(stream['end'])
-#                     endtime = stream['end']
-#                 except Exception:
-#                     endtime = ''
-#                 outxml.append(streamtext.format(netcode=netcode, stacode=stacode, starttime=starttime, endtime=endtime))
-#             outxml.append(footer)
-#             return ''.join(outxml).encode('utf-8')
-
 
 # def main():
 #     """Establishing the connection to the DB."""
