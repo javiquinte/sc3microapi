@@ -54,7 +54,7 @@ StationCode = constr(strip_whitespace=True, to_upper=True, min_length=1, max_len
 LocationCode = constr(strip_whitespace=True, to_upper=True, max_length=2, pattern=r'[A-Z0-9]{0,2}')
 ChannelCode = constr(strip_whitespace=True, to_upper=True, min_length=3, max_length=3, pattern=r'[A-Z0-9]{3}')
 
-__version__ = '0.4a2'
+__version__ = '0.4a3'
 
 
 # Get extra fields from the cfg file
