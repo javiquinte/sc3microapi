@@ -10,6 +10,7 @@ from core import StationCode
 from core import Network
 from core import Station
 from core import VirtualNet
+from core import VirtualStation
 from pydantic import conint
 import MySQLdb
 from MySQLdb.cursors import DictCursor
@@ -197,6 +198,31 @@ class TestConnection(GenericConnection):
 
         result = [VirtualNet(**{'code': '_GEALL', 'start': datetime(1993, 1, 1), 'end': None,
                                 'type': '?'})]
+
+        # Complete SC3 data with local data
+        logging.debug(query % tuple(variables))
+        return result
+
+    def getvnstations(self, net: NetworkCode) -> List[VirtualStation]:
+        query = 'select ne.code as network, st.code as station, st.start as start, st.end as end ' + \
+            'from StationGroup as sg join StationReference as sr join PublicObject as po ' + \
+            'join Station as st join  Network as ne'
+
+        fields = ['network', 'station', 'start', 'end']
+
+        whereclause = ['sg._oid = sr._parent_oid',
+                       'po.publicID = sr.stationID',
+                       'st._oid = po._oid',
+                       'st._parent_oid = ne._oid']
+        variables = []
+        whereclause.append('sg.code=%s')
+        variables.append(net)
+
+        if len(whereclause):
+            query = query + ' where ' + ' and '.join(whereclause)
+
+        result = [VirtualStation(**{'network': 'GE', 'station': 'APE',
+                                    'start': datetime(2000, 1, 1), 'end': None})]
 
         # Complete SC3 data with local data
         logging.debug(query % tuple(variables))
