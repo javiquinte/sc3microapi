@@ -378,20 +378,20 @@ def basevnstation(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 
     pass
 
 
-# @app.get('/virtualnet/stations/{net}', summary='Get list of stations from a virtual network',
-#          deprecated=True, tags=['Virtual Network'])
-# def virtualstationsdeprecated(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'json', typevn: str = None,
-#                               starttime: Union[datetime, date] = None, endtime: Union[datetime, date] = None):
-#     #  -> Union[JSONResponse, PlainTextResponse, Response]
-#     """Get information about the stations in a virtual network
-#
-#     - **net**: Network code
-#     - **outformat**: Output format (json, text, xml)
-#     - **typevn**: Type of the virtual network
-#     - **starttime**: Start time in isoformat
-#     - **endtime**: End time in isoformat
-#     """
-#     return basevnstation(net, outformat, typevn, starttime, endtime)
+@app.get('/virtualnet/stations/{net}', summary='Get list of stations from a virtual network',
+         deprecated=True, tags=['Virtual Network'])
+def virtualstationsdeprecated(net: NetworkCode, outformat: Literal['text', 'json', 'xml'] = 'json', typevn: str = None,
+                              starttime: Union[datetime, date] = None, endtime: Union[datetime, date] = None):
+    #  -> Union[JSONResponse, PlainTextResponse, Response]
+    """Get information about the stations in a virtual network
+
+    - **net**: Network code
+    - **outformat**: Output format (json, text, xml)
+    - **typevn**: Type of the virtual network
+    - **starttime**: Start time in isoformat
+    - **endtime**: End time in isoformat
+    """
+    return basevnstation(net, outformat, typevn, starttime, endtime)
 
 
 @app.get('/virtualnet/station/{net}', summary='Get list of stations from a virtual network',
