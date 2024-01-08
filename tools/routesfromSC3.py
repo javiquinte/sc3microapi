@@ -77,23 +77,29 @@ def main():
         with open(args.rules, encoding='utf-8') as c:
             config.read_file(c)
 
-        if config.has_section('Networks') and 'skip' in config.options('Networks'):
-            nets2skip = [x.strip() for x in config.get('Networks', 'skip').split(',')]
+        if config.has_section('Networks'):
+            if 'skip' in config.options('Networks'):
+                nets2skip = [x.strip() for x in config.get('Networks', 'skip').split(',')]
 
-        if config.has_section('Networks') and 'priority2' in config.options('Networks'):
-            priority2 = [x.strip() for x in config.get('Networks', 'priority2').split(',')]
+            if 'priority2' in config.options('Networks'):
+                priority2 = [x.strip() for x in config.get('Networks', 'priority2').split(',')]
 
-        if config.has_section('Networks') and 'priority3' in config.options('Networks'):
-            priority3 = [x.strip() for x in config.get('Networks', 'priority3').split(',')]
+            if 'priority3' in config.options('Networks'):
+                priority3 = [x.strip() for x in config.get('Networks', 'priority3').split(',')]
 
-        if config.has_section('Stations') and 'include' in config.options('Stations'):
-            stations2add = [x.strip() for x in config.get('Stations', 'include').split(',')]
+        if config.has_section('Stations'):
+            if 'include' in config.options('Stations'):
+                stations2add = [x.strip() for x in config.get('Stations', 'include').split(',')]
 
-        if config.has_section('Stations') and 'skip' in config.options('Stations'):
-            stations2skip = [x.strip() for x in config.get('Stations', 'skip').split(',')]
+            if 'priority2' in config.options('Stations'):
+                priority2.extend([x.strip() for x in config.get('Stations', 'priority2').split(',')])
 
-        if config.has_section('Virtualnets') and 'skip' in config.options('Virtualnets'):
-            vnets2skip = [x.strip() for x in config.get('Virtualnets', 'skip').split(',')]
+            if 'skip' in config.options('Stations'):
+                stations2skip = [x.strip() for x in config.get('Stations', 'skip').split(',')]
+
+        if config.has_section('Virtualnets'):
+            if 'skip' in config.options('Virtualnets'):
+                vnets2skip = [x.strip() for x in config.get('Virtualnets', 'skip').split(',')]
 
     # Call the sc3microapi method "networks"
     url = '%s/network/' % args.url
