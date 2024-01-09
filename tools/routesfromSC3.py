@@ -94,6 +94,9 @@ def main():
             if 'priority2' in config.options('Stations'):
                 priority2.extend([x.strip() for x in config.get('Stations', 'priority2').split(',')])
 
+            if 'priority3' in config.options('Stations'):
+                priority3.extend([x.strip() for x in config.get('Stations', 'priority3').split(',')])
+
             if 'skip' in config.options('Stations'):
                 stations2skip = [x.strip() for x in config.get('Stations', 'skip').split(',')]
 
