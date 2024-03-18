@@ -1012,10 +1012,10 @@ class VirtualNetsAPI(object):
                 streamtext = '<ns0:stream networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*" start="{starttime}" end="{endtime}" />\n'
                 netcode = stream['network']
                 stacode = stream['station']
-                starttime = stream['start']
+                starttime = stream['start'].isoformat()
                 try:
                     str2date(stream['end'])
-                    endtime = stream['end']
+                    endtime = stream['end'].isoformat()
                 except Exception:
                     endtime = ''
                 outxml.append(streamtext.format(netcode=netcode, stacode=stacode, starttime=starttime, endtime=endtime))
