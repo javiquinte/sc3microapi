@@ -1,15 +1,15 @@
 openapi: 3.0.0
 info:
-  version: 0.1a1
+  version: 0.3.1
   title: sc3MicroAPI
-  description: API specification for the WS retrieving management data from SeisComP3
+  description: API specification for the WS retrieving information about networks and stations from SeisComP3
   license:
     name: GPLv3
     url: 'https://www.gnu.org/licenses/gpl-3.0.html'
   contact:
     name: Javier Quinteros
     url: >-
-      http://www.gfz-potsdam.de/en/section/seismology/staff/profil/javier-quinteros/
+      https://www.gfz-potsdam.de/staff/javier.quinteros/sec24
     email: javier@gfz-potsdam.de
 servers:
   - url: 'http://localhost:7000/sc3microapi'
@@ -76,9 +76,10 @@ paths:
             enum:
               - json
               - text
+              - xml
         - name: restricted
           in: query
-          description: Spicify whether the network is restricted or not.
+          description: Specify whether the network is restricted or not.
           required: false
           schema:
             type: number
@@ -113,6 +114,158 @@ paths:
                 $ref: '#/components/responses/Standard4XXErrorResponse'
         '404':
           description: Unknown error while querying the available networks.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard4XXErrorResponse'
+  /station:
+    get:
+      summary: Get a list of stations and its properties
+      description: >-
+        Returns a list of stations including all its attributes and filtered
+        based on the parameters sent.
+      parameters:
+        - name: net
+          in: query
+          description: Network code
+          required: false
+          schema:
+            type: string
+        - name: sta
+          in: query
+          description: Station code
+          required: false
+          schema:
+            type: string
+        - name: starttime
+          in: query
+          description: Start time of the time window
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: endtime
+          in: query
+          description: End time of the time window
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: outformat
+          in: query
+          description: Format of the response
+          required: false
+          schema:
+            type: string
+            default: json
+            enum:
+              - json
+              - text
+              - xml
+        - name: restricted
+          in: query
+          description: Specify whether the network is restricted or not.
+          required: false
+          schema:
+            type: number
+            format: int
+            minimum: 0
+            maximum: 1
+        - name: archive
+          in: query
+          description: Acronym of the institution where data is archived.
+          required: false
+          schema:
+            type: string
+        - name: shared
+          in: query
+          description: Specify whether the network is shared with EIDA.
+          required: false
+          schema:
+            type: number
+            format: int
+            minimum: 0
+            maximum: 1
+      responses:
+        '200':
+          description: List of stations filtered based on parameters.
+          $ref: '#/components/responses/Stations'
+        '204':
+          description: No data available with the specified parameters.
+        '400':
+          description: >-
+            Bad request due to improper specification, unrecognized parameter,
+            parameter value out of range, etc.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard4XXErrorResponse'
+        '404':
+          description: Unknown error while querying the available stations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard4XXErrorResponse'
+  /virtualnet:
+    get:
+      summary: Get a list of virtual networks and its properties
+      description: >-
+        Returns a list of virtual networks including all its attributes and filtered
+        based on the parameters sent.
+      parameters:
+        - name: net
+          in: query
+          description: Network code
+          required: false
+          schema:
+            type: string
+        - name: starttime
+          in: query
+          description: Start time of the time window
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: endtime
+          in: query
+          description: End time of the time window
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: outformat
+          in: query
+          description: Format of the response
+          required: false
+          schema:
+            type: string
+            default: json
+            enum:
+              - json
+              - text
+              - xml
+        - name: typevn
+          in: query
+          description: Type of virtual network.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of virtual networks filtered based on parameters.
+          $ref: '#/components/responses/VNetworks'
+        '204':
+          description: No data available with the specified parameters.
+        '400':
+          description: >-
+            Bad request due to improper specification, unrecognized parameter,
+            parameter value out of range, etc.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard4XXErrorResponse'
+        '404':
+          description: Unknown error while querying the available virtual networks.
           content:
             application/json:
               schema:
@@ -204,6 +357,38 @@ components:
             type: string
           examples:
             plainnetwork:
+              value: >-
+                code|start|end|netClass|archive|restricted|PI GE|1993-01-01
+                00:00:00||p|GFZ|0|geofon@gfz-potsdam.de
+    Stations:
+      description: List of stations filtered based on the parameters.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#components/schemas/Station'
+        text/plain:
+          schema:
+            type: string
+          examples:
+            plainstation:
+              value: >-
+                code|start|end|netClass|archive|restricted|PI GE|1993-01-01
+                00:00:00||p|GFZ|0|geofon@gfz-potsdam.de
+    VNetworks:
+      description: List of virtual networks filtered based on the parameters.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#components/schemas/VNetwork'
+        text/plain:
+          schema:
+            type: string
+          examples:
+            plainvnetwork:
               value: >-
                 code|start|end|netClass|archive|restricted|PI GE|1993-01-01
                 00:00:00||p|GFZ|0|geofon@gfz-potsdam.de

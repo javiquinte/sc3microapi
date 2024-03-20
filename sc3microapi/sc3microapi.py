@@ -187,6 +187,7 @@ class SC3dbconnection(object):
 
         return
 
+
 @cherrypy.expose
 class AccessAPI(object):
     """Object dispatching methods related to access to streams."""
@@ -1065,7 +1066,7 @@ class SC3MicroApi(object):
         :returns: Version of the system
         :rtype: string
         """
-        version = '0.3b1'
+        version = '0.3.1'
         cherrypy.response.headers['Content-Type'] = 'text/plain'
         return version.encode('utf-8')
 
