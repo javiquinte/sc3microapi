@@ -328,11 +328,11 @@ components:
         code:
           type: string
         latitude:
-          type: float
+          type: number
         longitude:
-          type: float
+          type: number
         elevation:
-          type: float
+          type: number
         place:
           type: string
         country:
