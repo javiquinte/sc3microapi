@@ -343,6 +343,48 @@ components:
           type: string
         restricted:
           type: integer
+    Station:
+      description: Seismic station.
+      type: object
+      properties:
+        network:
+          type: string
+        code:
+          type: string
+        latitude:
+          type: float
+        longitude:
+          type: float
+        elevation:
+          type: float
+        place:
+          type: string
+        country:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        restricted:
+          type: integer
+        shared:
+          type: integer
+    VNetwork:
+      description: Seismic network.
+      type: object
+      properties:
+        code:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        type:
+          type: string
   responses:
     Networks:
       description: List of networks filtered based on the parameters.
