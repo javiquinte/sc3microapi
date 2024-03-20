@@ -108,16 +108,10 @@ paths:
           description: >-
             Bad request due to improper specification, unrecognized parameter,
             parameter value out of range, etc.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard4XXErrorResponse'
+          $ref: '#/components/responses/ErrorResponse'
         '404':
           description: Unknown error while querying the available networks.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard4XXErrorResponse'
+          $ref: '#/components/responses/ErrorResponse'
   /station:
     get:
       summary: Get a list of stations and its properties
@@ -196,16 +190,10 @@ paths:
           description: >-
             Bad request due to improper specification, unrecognized parameter,
             parameter value out of range, etc.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard4XXErrorResponse'
+          $ref: '#/components/responses/ErrorResponse'
         '404':
           description: Unknown error while querying the available stations.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard4XXErrorResponse'
+          $ref: '#/components/responses/ErrorResponse'
   /virtualnet:
     get:
       summary: Get a list of virtual networks and its properties
@@ -260,16 +248,10 @@ paths:
           description: >-
             Bad request due to improper specification, unrecognized parameter,
             parameter value out of range, etc.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard4XXErrorResponse'
+          $ref: '#/components/responses/ErrorResponse'
         '404':
           description: Unknown error while querying the available virtual networks.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard4XXErrorResponse'
+          $ref: '#/components/responses/ErrorResponse'
   /access:
     get:
       summary: Check if a particular user has access to data
@@ -313,16 +295,10 @@ paths:
           description: >-
             Bad request due to improper specification, unrecognized parameter,
             parameter value out of range, etc.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard4XXErrorResponse'
+          $ref: '#/components/responses/ErrorResponse'
         '403':
           description: Unknown error while querying the available networks.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard4XXErrorResponse'
+          $ref: '#/components/responses/ErrorResponse'
 components:
   schemas:
     Network:
@@ -385,6 +361,14 @@ components:
           format: date-time
         type:
           type: string
+    StdErrorSchema:
+      description: Bad Request.
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
   responses:
     Networks:
       description: List of networks filtered based on the parameters.
@@ -434,16 +418,11 @@ components:
               value: >-
                 code|start|end|netClass|archive|restricted|PI GE|1993-01-01
                 00:00:00||p|GFZ|0|geofon@gfz-potsdam.de
-    Standard4XXErrorResponse:
-      description: Bad Request.
+    ErrorResponse:
+      description: Error Response.
       content:
         application/json:
           schema:
             type: array
             items:
-              type: object
-              properties:
-                code:
-                  type: integer
-                message:
-                  type: string
+              $ref: '#components/schemas/StdErrorSchema'
