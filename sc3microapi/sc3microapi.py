@@ -38,6 +38,7 @@ import logging
 import logging.config
 import datetime
 import configparser
+from typing import Union
 
 # Logging configuration (hardcoded!)
 LOG_CONF = {
@@ -121,7 +122,7 @@ LOG_CONF = {
 }
 
 
-def str2date(dateiso):
+def str2date(dateiso: str) -> Union[datetime.datetime, None]:
     """Transform a string to a datetime.
 
     :param dateiso: A datetime in ISO format.
@@ -145,7 +146,7 @@ def str2date(dateiso):
 
 
 class SC3dbconnection(object):
-    def __init__(self, host, user, password, db='seiscomp3'):
+    def __init__(self, host: str, user: str, password: str, db: str = 'seiscomp3'):
         """Constructor of the AccessAPI class."""
         self.host = host
         self.user = user
@@ -174,7 +175,7 @@ class SC3dbconnection(object):
 
         return self.cursor.fetchall()
 
-    def execute(self, query, variables):
+    def execute(self, query: str, variables):
         try:
             self.cursor = self.conn.cursor()
             self.cursor.execute(query, variables)
@@ -192,13 +193,14 @@ class SC3dbconnection(object):
 class AccessAPI(object):
     """Object dispatching methods related to access to streams."""
 
-    def __init__(self, host, user, password, db):
+    def __init__(self, host: str, user: str, password: str, db: str):
         """Constructor of the AccessAPI class."""
         # Save connection
         self.conn = SC3dbconnection(host, user, password, db)
         self.log = logging.getLogger('AccessAPI')
 
-    def __access(self, email, net='', sta='', loc='', cha='', starttime=None, endtime=None):
+    def __access(self, email: str, net: str = '', sta: str = '', loc: str = '', cha: str = '',
+                 starttime: datetime.datetime = None, endtime: datetime.datetime = None):
         # Check network access
         # self.cursor = self.conn.cursor()
         whereclause = ['networkCode=%s',
@@ -226,7 +228,7 @@ class AccessAPI(object):
         raise Exception('No result querying the DB ({})'.format(query % variables))
 
     @cherrypy.expose
-    def index(self, nslc, email, starttime=None, endtime=None):
+    def index(self, nslc: str, email: str, starttime: str = None, endtime: str = None):
         """Check if the user has access to a stream.
 
         The output should be empty, because the error code is the real output.
@@ -350,7 +352,7 @@ class AccessAPI(object):
 class StationsAPI(object):
     """Object dispatching methods related to stations."""
 
-    def __init__(self, host, user, password, db):
+    def __init__(self, host: str, user: str, password: str, db: str):
         """Constructor of the StationsAPI class."""
         # Save connection
         self.conn = SC3dbconnection(host, user, password, db)
@@ -366,8 +368,8 @@ class StationsAPI(object):
         # self.stasuppl.read('stations.cfg')
 
     @cherrypy.expose
-    def index(self, net=None, sta=None, outformat='json', restricted=None, archive=None,
-              shared=None, starttime=None, endtime=None, **kwargs):
+    def index(self, net: str = None, sta: str = None, outformat: str = 'json', restricted: str = None,
+              archive: str = None, shared: str = None, starttime: str = None, endtime: str = None, **kwargs):
         """List available stations in the system.
 
         :param net: Network code
@@ -567,7 +569,7 @@ class StationsAPI(object):
 class NetworksAPI(object):
     """Object dispatching methods related to networks."""
 
-    def __init__(self, host, user, password, db):
+    def __init__(self, host: str, user: str, password: str, db: str):
         """Constructor of the NetworksAPI class."""
         # Save connection
         self.conn = SC3dbconnection(host, user, password, db)
@@ -583,8 +585,8 @@ class NetworksAPI(object):
         self.netsuppl.read('networks.cfg')
 
     @cherrypy.expose
-    def index(self, net=None, outformat='json', restricted=None, archive=None,
-              netclass=None, shared=None, starttime=None, endtime=None, **kwargs):
+    def index(self, net: str = None, outformat: str = 'json', restricted: str = None, archive: str = None,
+              netclass: str = None, shared: str = None, starttime: str = None, endtime: str = None, **kwargs):
         """List available networks in the system.
 
         :param net: Network code
@@ -794,7 +796,7 @@ class NetworksAPI(object):
 class VirtualNetsAPI(object):
     """Object dispatching methods related to virtual networks."""
 
-    def __init__(self, host, user, password, db):
+    def __init__(self, host: str, user: str, password: str, db: str):
         """Constructor of the NetworksAPI class."""
         # Save connection
         self.conn = SC3dbconnection(host, user, password, db)
@@ -805,8 +807,8 @@ class VirtualNetsAPI(object):
         cfgfile.read('sc3microapi.cfg')
 
     @cherrypy.expose
-    def index(self, net=None, outformat='json', typevn=None,
-              starttime=None, endtime=None, **kwargs):
+    def index(self, net: str = None, outformat: str = 'json', typevn: str = None,
+              starttime: str=None, endtime: str = None, **kwargs):
         """List available networks in the system.
 
         :param net: Network code
@@ -931,7 +933,7 @@ class VirtualNetsAPI(object):
             return ''.join(outxml).encode('utf-8')
 
     @cherrypy.expose
-    def stations(self, net, outformat='json', **kwargs):
+    def stations(self, net: str, outformat: str = 'json', **kwargs):
         """List available networks in the system.
 
         :param net: Network code
