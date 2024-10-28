@@ -1106,7 +1106,7 @@ def main():
     cherrypy.config.update(server_config)
     cherrypy.tree.mount(SC3MicroApi(host, user, password, db), '/sc3microapi')
 
-    plugins.Daemonizer(cherrypy.engine).subscribe()
+    # plugins.Daemonizer(cherrypy.engine).subscribe()
     if hasattr(cherrypy.engine, 'signal_handler'):
         cherrypy.engine.signal_handler.subscribe()
     if hasattr(cherrypy.engine, 'console_control_handler'):
