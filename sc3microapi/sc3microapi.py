@@ -1068,7 +1068,7 @@ class SC3MicroApi(object):
         :returns: Version of the system
         :rtype: string
         """
-        version = '0.3.1'
+        version = '0.3.2'
         cherrypy.response.headers['Content-Type'] = 'text/plain'
         return version.encode('utf-8')
 
