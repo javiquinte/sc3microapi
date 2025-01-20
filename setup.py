@@ -50,7 +50,7 @@ setup(
 
     # Author details
     author='Javier Quinteros',
-    author_email='javier@gfz-potsdam.de',
+    author_email='javier@gfz.de',
 
     # Choose your license
     license='GPLv3',
