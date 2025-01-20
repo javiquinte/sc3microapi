@@ -142,7 +142,7 @@ def str2date(dateiso: str) -> Union[datetime.datetime, None]:
     except Exception:
         raise ValueError('{} could not be parsed as datetime.'.format(dateiso))
 
-    return result
+    return result.replace(tzinfo=datetime.timezone.utc)
 
 
 class SC3dbconnection(object):
