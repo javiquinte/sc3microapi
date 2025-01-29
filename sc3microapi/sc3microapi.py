@@ -2,8 +2,8 @@
 #
 # sc3microapi WS - prototype
 #
-# (c) 2017-2020 Javier Quinteros, GEOFON team
-# <javier@gfz-potsdam.de>
+# (c) 2017-2025 Javier Quinteros, GEOFON team
+# <javier@gfz.de>
 #
 # ----------------------------------------------------------------------
 
@@ -12,11 +12,11 @@
    :Platform:
        Linux
    :Copyright:
-       GEOFON, GFZ Potsdam <geofon@gfz-potsdam.de>
+       GEOFON, GFZ Helmholtz Centre for Geosciences <geofon@gfz.de>
    :License:
        GNU General Public License v3
 
-.. moduleauthor:: Javier Quinteros <javier@gfz-potsdam.de>, GEOFON, GFZ Potsdam
+.. moduleauthor:: Javier Quinteros <javier@gfz.de>, GEOFON, GFZ
 """
 
 ##################################################################
@@ -142,7 +142,7 @@ def str2date(dateiso: str) -> Union[datetime.datetime, None]:
     except Exception:
         raise ValueError('{} could not be parsed as datetime.'.format(dateiso))
 
-    return result
+    return result.replace(tzinfo=datetime.timezone.utc)
 
 
 class SC3dbconnection(object):
@@ -547,10 +547,10 @@ class StationsAPI(object):
             for sta in result:
                 routetext = """
  <ns0:route networkCode="{netcode}" stationCode="{stacode}" locationCode="*" streamCode="*">
-  <ns0:station address="https://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{stastart}" end="{staend}" />
-  <ns0:wfcatalog address="https://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{stastart}" end="{staend}" />
-  <ns0:dataselect address="https://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{stastart}" end="{staend}" />
-  <ns0:availability address="https://geofon.gfz-potsdam.de/fdsnws/availability/1/query" priority="1" start="{stastart}" end="{staend}" />
+  <ns0:station address="https://geofon.gfz.de/fdsnws/station/1/query" priority="1" start="{stastart}" end="{staend}" />
+  <ns0:wfcatalog address="https://geofon.gfz.de/eidaws/wfcatalog/1/query" priority="1" start="{stastart}" end="{staend}" />
+  <ns0:dataselect address="https://geofon.gfz.de/fdsnws/dataselect/1/query" priority="1" start="{stastart}" end="{staend}" />
+  <ns0:availability address="https://geofon.gfz.de/fdsnws/availability/1/query" priority="1" start="{stastart}" end="{staend}" />
  </ns0:route>
  """
                 nc = sta['network']
@@ -767,10 +767,10 @@ class NetworksAPI(object):
             for net in result:
                 routetext = """
  <ns0:route networkCode="{netcode}" stationCode="*" locationCode="*" streamCode="*">
-  <ns0:station address="https://geofon.gfz-potsdam.de/fdsnws/station/1/query" priority="1" start="{netstart}" end="{netend}" />
-  <ns0:wfcatalog address="https://geofon.gfz-potsdam.de/eidaws/wfcatalog/1/query" priority="1" start="{netstart}" end="{netend}" />
-  <ns0:dataselect address="https://geofon.gfz-potsdam.de/fdsnws/dataselect/1/query" priority="1" start="{netstart}" end="{netend}" />
-  <ns0:availability address="https://geofon.gfz-potsdam.de/fdsnws/availability/1/query" priority="1" start="{netstart}" end="{netend}" />
+  <ns0:station address="https://geofon.gfz.de/fdsnws/station/1/query" priority="1" start="{netstart}" end="{netend}" />
+  <ns0:wfcatalog address="https://geofon.gfz.de/eidaws/wfcatalog/1/query" priority="1" start="{netstart}" end="{netend}" />
+  <ns0:dataselect address="https://geofon.gfz.de/fdsnws/dataselect/1/query" priority="1" start="{netstart}" end="{netend}" />
+  <ns0:availability address="https://geofon.gfz.de/fdsnws/availability/1/query" priority="1" start="{netstart}" end="{netend}" />
  </ns0:route>
  """
                 nc = net['code']
@@ -1068,7 +1068,7 @@ class SC3MicroApi(object):
         :returns: Version of the system
         :rtype: string
         """
-        version = '0.3.1'
+        version = '0.3.2'
         cherrypy.response.headers['Content-Type'] = 'text/plain'
         return version.encode('utf-8')
 
@@ -1106,7 +1106,7 @@ def main():
     cherrypy.config.update(server_config)
     cherrypy.tree.mount(SC3MicroApi(host, user, password, db), '/sc3microapi')
 
-    plugins.Daemonizer(cherrypy.engine).subscribe()
+    # plugins.Daemonizer(cherrypy.engine).subscribe()
     if hasattr(cherrypy.engine, 'signal_handler'):
         cherrypy.engine.signal_handler.subscribe()
     if hasattr(cherrypy.engine, 'console_control_handler'):
