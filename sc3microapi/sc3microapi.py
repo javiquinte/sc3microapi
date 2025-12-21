@@ -27,7 +27,6 @@
 
 
 import cherrypy
-from cherrypy.process import plugins
 import os
 import io
 import csv
@@ -551,6 +550,7 @@ class StationsAPI(object):
   <ns0:wfcatalog address="https://geofon.gfz.de/eidaws/wfcatalog/1/query" priority="1" start="{stastart}" end="{staend}" />
   <ns0:dataselect address="https://geofon.gfz.de/fdsnws/dataselect/1/query" priority="1" start="{stastart}" end="{staend}" />
   <ns0:availability address="https://geofon.gfz.de/fdsnws/availability/1/query" priority="1" start="{stastart}" end="{staend}" />
+  <ns0:psd address="https://geofon.gfz.de/eidaws/psd/1/" priority="1" start="{stastart}" end="{staend}" />
  </ns0:route>
  """
                 nc = sta['network']
@@ -771,6 +771,7 @@ class NetworksAPI(object):
   <ns0:wfcatalog address="https://geofon.gfz.de/eidaws/wfcatalog/1/query" priority="1" start="{netstart}" end="{netend}" />
   <ns0:dataselect address="https://geofon.gfz.de/fdsnws/dataselect/1/query" priority="1" start="{netstart}" end="{netend}" />
   <ns0:availability address="https://geofon.gfz.de/fdsnws/availability/1/query" priority="1" start="{netstart}" end="{netend}" />
+  <ns0:psd address="https://geofon.gfz.de/eidaws/psd/1/" priority="1" start="{netstart}" end="{netend}" />
  </ns0:route>
  """
                 nc = net['code']
