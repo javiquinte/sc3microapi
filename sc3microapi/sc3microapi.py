@@ -550,7 +550,7 @@ class StationsAPI(object):
   <ns0:wfcatalog address="https://geofon.gfz.de/eidaws/wfcatalog/1/query" priority="1" start="{stastart}" end="{staend}" />
   <ns0:dataselect address="https://geofon.gfz.de/fdsnws/dataselect/1/query" priority="1" start="{stastart}" end="{staend}" />
   <ns0:availability address="https://geofon.gfz.de/fdsnws/availability/1/query" priority="1" start="{stastart}" end="{staend}" />
-  <ns0:psd address="https://geofon.gfz.de/eidaws/psd/1/" priority="1" start="{stastart}" end="{staend}" />
+  <ns0:psd address="https://geofon.gfz.de/eidaws/psd/1/value" priority="1" start="{stastart}" end="{staend}" />
  </ns0:route>
  """
                 nc = sta['network']
